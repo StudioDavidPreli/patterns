@@ -30,9 +30,9 @@ rotates the palette without moving a rectangle.
 
 A 252-pixel sidebar runs five groups of sliders, top to bottom:
 Composition, Color, Stroke, Texture, Animation. A "Randomize all"
-button at the top walks every slider and rerolls both seeds.
-"New layout" and "New colors" sit at the bottom alongside PNG and
-SVG export.
+button at the top walks every slider and rerolls both seeds. "New
+layout" and "New colors" sit at the bottom alongside PNG and SVG
+export.
 
 Threshold sliders (fill density, white-on-dark share, etc.) re-run
 per-cell decisions against a stable seeded stream, so raising a
@@ -43,8 +43,8 @@ The cell rectangles stay put.
 
 Four toggles, one tick. Layout, colors, ratio, and randomize-all,
 each ticking on a shared setTimeout. They compose. Pause clears all
-four and stops the timer; the current frame stays on screen for
-PNG or SVG capture.
+four and stops the timer; the current frame stays on screen for PNG
+or SVG capture.
 
 ## Specimen names
 
@@ -61,17 +61,33 @@ agreement is enforced. *Linea nigrofracta* is not classically
 correct. *Granum discolor* is shaky. The system is not trying to
 fool a classicist.
 
-## Stack
+## Run it
 
-- p5.js 1.9 via CDN
-- IBM Plex Mono and IBM Plex Serif via Google Fonts
-- One HTML file, no build, no dependencies beyond the CDN imports
+Single static file. Open it in a browser, or serve the folder from
+anything that serves files.
+
+```bash
+git clone https://github.com/StudioDavidPreli/patterns.git
+cd patterns
+open block_patterns_v1.html
+```
+
+For local serving with live reload:
+
+```bash
+npx serve .
+```
 
 ## Files
 
 - `block_patterns_v1.html` — the tool
 - `block_and_line_case_study.html` — the case study writeup
 
+## Stack
+
+p5.js 1.9 via CDN. IBM Plex Mono and IBM Plex Serif via Google Fonts.
+No build, no dependencies beyond the CDN imports.
+
 ## License
 
-Personal portfolio work. Studio David Preli, 2026.
+Studio David Preli, 2026. Personal portfolio work.
