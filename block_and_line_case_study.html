@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block &amp; Line — Case Study</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #141414;
+  --panel:   #1e1e1e;
+  --panel2:  #262626;
+  --border:  #2e2e2e;
+  --border2: #3d3d3d;
+  --accent:  #d83b27;   /* B&L red-orange */
+  --accent2: #c63a76;   /* B&L magenta */
+  --accent3: #e0b020;   /* B&L mustard */
+  --text:    #e1e1e1;
+  --muted:   #888888;
+  --muted2:  #aaaaaa;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+/* ── Layout ── */
+.page { max-width: 860px; margin: 0 auto; padding: 56px 28px 80px; }
+
+/* ── Header ── */
+.cs-header {
+  margin-bottom: 56px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 32px;
+}
+
+.cs-eyebrow {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.cs-title {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: clamp(32px, 6vw, 56px);
+  color: var(--accent);
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+
+.cs-subtitle {
+  font-size: 13px;
+  color: var(--muted2);
+  margin-bottom: 24px;
+}
+
+.cs-meta {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.cs-meta-item { display: flex; flex-direction: column; gap: 3px; }
+.cs-meta-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.cs-meta-value { font-size: 12px; color: var(--text); }
+
+/* ── Nav ── */
+.toc {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 20px 24px;
+  margin-bottom: 56px;
+}
+
+.toc-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.toc-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toc-list li { display: flex; align-items: baseline; gap: 10px; }
+
+.toc-list a {
+  font-size: 12px;
+  color: var(--muted2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.toc-list a:hover { color: var(--accent); }
+
+.toc-num {
+  font-size: 9px;
+  color: var(--muted);
+  min-width: 20px;
+}
+
+/* ── Section label ── */
+.sec-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.sec-num {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 11px;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+/* ── Headings ── */
+h2 {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 24px;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  margin-bottom: 14px;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  margin-top: 28px;
+}
+
+/* ── Body ── */
+p { margin-bottom: 14px; color: var(--text); font-size: 13px; }
+p.lede {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--muted2);
+  margin-bottom: 24px;
+}
+em { font-style: italic; color: var(--accent2); }
+strong { font-weight: 700; color: var(--text); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Sections ── */
+.section { margin-bottom: 60px; }
+
+/* ── Pull quote ── */
+.pullquote {
+  border-left: 2px solid var(--accent);
+  padding: 16px 24px;
+  margin: 28px 0;
+  background: rgba(216, 59, 39, 0.05);
+}
+
+.pullquote p {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--muted2);
+  margin: 0;
+}
+
+/* ── Inline code ── */
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--accent3);
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
+
+/* ── Code blocks ── */
+.code-block {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent3);
+  border-radius: 2px;
+  padding: 14px 18px;
+  margin: 18px 0 24px;
+  color: var(--muted2);
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code-block .kw { color: var(--accent); }
+.code-block .lit { color: var(--accent3); }
+.code-block .com { color: var(--muted); }
+
+/* ── Lists ── */
+ul.cs-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+ul.cs-list li {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted2);
+  line-height: 1.65;
+}
+
+ul.cs-list li::before {
+  content: '\2013';
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+ul.cs-list li strong { color: var(--text); }
+
+ol.cs-list {
+  list-style: none;
+  counter-reset: cs-counter;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+ol.cs-list li {
+  counter-increment: cs-counter;
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted2);
+  line-height: 1.65;
+}
+
+ol.cs-list li::before {
+  content: counter(cs-counter) '.';
+  color: var(--accent);
+  flex-shrink: 0;
+  font-size: 11px;
+  margin-top: 2px;
+  min-width: 16px;
+}
+
+/* ── Tool embed ── */
+.tool-embed {
+  margin: 28px 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tool-embed-label {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-embed-label::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tool-embed iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  height: 720px;
+}
+
+/* ── Tables ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0 26px;
+  font-size: 12px;
+}
+
+.data-table th {
+  background: var(--panel2);
+  color: var(--muted2);
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid var(--border2);
+}
+
+.data-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  color: var(--muted2);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.data-table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+
+.data-table td.tok { font-family: 'IBM Plex Mono', monospace; color: var(--accent3); }
+.data-table td.val { font-family: 'IBM Plex Mono', monospace; color: var(--text); }
+
+/* ── Specimen tags ── */
+.specimens {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 8px;
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  color: var(--accent2);
+  font-size: 17px;
+}
+.specimens span { white-space: nowrap; }
+.specimens span::after {
+  content: '\00a0\00a0·\00a0';
+  color: var(--muted);
+}
+.specimens span:last-child::after { content: ''; }
+
+/* ── Closing block ── */
+.closing {
+  margin-top: 48px;
+  padding: 28px 0 0;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.closing p {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--muted2);
+  margin-bottom: 0;
+}
+.closing em { color: var(--accent2); }
+
+/* ── Footer ── */
+.cs-footer {
+  margin-top: 72px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs-footer p { font-size: 10px; color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HEADER ── -->
+  <header class="cs-header">
+    <div class="cs-eyebrow">Technical Case Study &mdash; Studio David Preli &mdash; 2026</div>
+    <h1 class="cs-title">Block &amp; Line</h1>
+    <p class="cs-subtitle">A pattern generator for printed-feel compositions. Two seeds, two layers, a sidebar of sliders.</p>
+    <div class="cs-meta">
+      <div class="cs-meta-item">
+        <span class="cs-meta-label">Runtime</span>
+        <span class="cs-meta-value">p5.js, single HTML file</span>
+      </div>
+      <div class="cs-meta-item">
+        <span class="cs-meta-label">Hosting</span>
+        <span class="cs-meta-value">GitHub Pages</span>
+      </div>
+      <div class="cs-meta-item">
+        <span class="cs-meta-label">Export</span>
+        <span class="cs-meta-value">PNG &mdash; SVG</span>
+      </div>
+      <div class="cs-meta-item">
+        <span class="cs-meta-label">Year</span>
+        <span class="cs-meta-value">2026</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── TOC ── -->
+  <nav class="toc">
+    <div class="toc-label">Contents</div>
+    <ul class="toc-list">
+      <li><span class="toc-num">01</span><a href="#overview">Overview</a></li>
+      <li><span class="toc-num">02</span><a href="#interface">The interface</a></li>
+      <li><span class="toc-num">03</span><a href="#architecture">Architecture</a></li>
+      <li><span class="toc-num">04</span><a href="#bug">The bug</a></li>
+      <li><span class="toc-num">05</span><a href="#fix">The fix</a></li>
+      <li><span class="toc-num">06</span><a href="#variance">Stroke variance</a></li>
+      <li><span class="toc-num">07</span><a href="#specimens">Specimen names</a></li>
+      <li><span class="toc-num">08</span><a href="#randomize">Randomize all</a></li>
+      <li><span class="toc-num">09</span><a href="#animation">Animation</a></li>
+      <li><span class="toc-num">10</span><a href="#defaults">Defaults</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── 01 OVERVIEW ── -->
+  <section class="section" id="overview">
+    <div class="sec-label"><span class="sec-num">01</span>Overview</div>
+    <h2>What it does</h2>
+    <p class="lede">Block &amp; Line draws patterns that look like they were printed and not rendered.</p>
+    <p>A grid of colored rectangles sits on a paper-grain background. Ink stripes overprint on top, sometimes black, sometimes white-on-dark, sometimes interrupted by the line breakage and jitter knobs. Two seeds control the result: one picks the geometry, one picks the colors. Sliders control everything in between.</p>
+    <p>The interesting part of the build was a bug. The two seeds were not independent. Clicking "New colors" appeared to reshape the layout. Clicking "New layout" appeared to reshuffle the palette. The rectangles held position. Everything inside them moved. The fix moved per-cell decisions out of the render pass and into the layout pass, where they belonged, and the seeds decoupled cleanly.</p>
+    <p>The rest of the build is extension work: per-cell variance on stroke spacing and weight, a Latin binomial pinned to the two seeds, a "Randomize all" button at the top of the sidebar, four animation toggles, and a Pause button that lets the user freeze on a generation they like.</p>
+
+    <div class="tool-embed">
+      <div class="tool-embed-label">Live tool</div>
+      <iframe
+        src="./block_patterns_v1.html"
+        title="Block &amp; Line generator"></iframe>
+    </div>
+  </section>
+
+  <!-- ── 02 INTERFACE ── -->
+  <section class="section" id="interface">
+    <div class="sec-label"><span class="sec-num">02</span>The interface</div>
+    <h2>Sidebar at 252 pixels, canvas on the right</h2>
+    <p>The page splits left to right. Sidebar at 252 pixels wide on the left. Canvas on the right. Paper grain showing through everything.</p>
+    <p>The sidebar runs five sections, top to bottom, with a "Randomize all" button pinned at the very top:</p>
+
+    <ul class="cs-list">
+      <li><strong>Composition.</strong> Aspect ratio. Color granularity, the minimum cell size for the color subdivision. Color split bias, horizontal versus vertical. The same two sliders for the stroke subdivision. A "Share layouts" toggle that ties the two subdivisions together.</li>
+      <li><strong>Color layer.</strong> Fill density and black dominance. The black slider is doing more work than its name suggests: at 87% the canvas reads as black ink with red and yellow accents, which is the loaded default.</li>
+      <li><strong>Stroke layer.</strong> Fill density. Horizontal share. Spacing and weight, with per-cell variance for both. White-on-dark share for the stripe color.</li>
+      <li><strong>Texture.</strong> Paper grain, line jitter, line breakage. The breakage slider on the loaded default is at 80%, which gives the stripes a worried, photocopied quality.</li>
+      <li><strong>Animation.</strong> Toggles for layout, colors, ratio, and randomization. A tick interval slider, and a Pause button that clears every animation toggle in one click.</li>
+    </ul>
+
+    <p>At the bottom: "New layout," "New colors," "Save PNG," "Save SVG."</p>
+    <p>The stage header shows the pair of seeds and a Latin binomial.</p>
+    <div class="specimens">
+      <span>Tessella nigrata</span>
+      <span>Pictura cinerea</span>
+      <span>Granum discolor</span>
+    </div>
+  </section>
+
+  <!-- ── 03 ARCHITECTURE ── -->
+  <section class="section" id="architecture">
+    <div class="sec-label"><span class="sec-num">03</span>Architecture</div>
+    <h2>Two passes on a p5.js canvas</h2>
+    <p>The pattern is rendered in two passes on a p5.js canvas.</p>
+
+<pre class="code-block"><span class="kw">layoutSeed</span> &rarr; subdivide() &rarr; colorCells, strokeCells (rectangles)
+              &darr;
+              assignCellStructure(): per-cell booleans + rolls
+
+<span class="kw">renderSeed</span> &rarr; pickColor(): palette picks per filled cell
+<span class="kw">layoutSeed</span>-derived constant &rarr; line jitter, line breakage</pre>
+
+    <h3>subdivide()</h3>
+    <p><code>subdivide()</code> is a recursive splitter. At each level it chooses between a horizontal cut and a vertical cut, biased by the user's split-bias slider and modulated by the cell's current aspect. It recurses into each child until a depth-and-area stop condition fires. The minimum cell size acts as a hard floor.</p>
+
+    <h3>assignCellStructure()</h3>
+    <p><code>assignCellStructure()</code> runs immediately after subdivision. It walks each cell and writes:</p>
+    <ul class="cs-list">
+      <li><code>c.filled</code> and <code>c.strokeFilled</code>: should this cell get drawn at all</li>
+      <li><code>c.horizontal</code>: do the stripes run sideways</li>
+      <li><code>c.whiteOnDark</code>: are the stripes white instead of black</li>
+      <li><code>c.spacingRoll</code> and <code>c.weightRoll</code>: raw <code>[0,1]</code> values for the per-cell stroke variance</li>
+    </ul>
+    <p>These properties are tied to <code>layoutSeed</code>. Once they're recorded, <code>renderSeed</code> controls only the palette picks inside <code>pickColor()</code>, and a <code>layoutSeed</code>-derived constant seeds the line jitter and breakage.</p>
+  </section>
+
+  <!-- ── 04 THE BUG ── -->
+  <section class="section" id="bug">
+    <div class="sec-label"><span class="sec-num">04</span>The bug</div>
+    <h2>Two buttons, one effect</h2>
+    <p>The first complaint was obvious in thirty seconds of clicking around. "New colors" was not just changing colors. It was changing where the stripes ran, which cells were empty, whether the ink was black or white. The rectangles held position. Everything inside them flipped. "New layout" had the symmetric problem: rerolling the geometry also rerolled the palette.</p>
+
+    <p>The diagnosis lived in the draw loop. After the layout subdivision finished, the draw pass reseeded with <code>renderSeed</code> and walked both cell lists, calling <code>p.random()</code> in order to decide:</p>
+
+    <ol class="cs-list">
+      <li>whether the color cell got filled at all</li>
+      <li>which palette color it received</li>
+      <li>whether the stripe cell got rendered</li>
+      <li>whether the stripes ran horizontal or vertical</li>
+      <li>whether the stripes were white instead of black</li>
+    </ol>
+
+    <p>Five decisions, one stream, one seed. The boundary between "layout" and "render" was a label on the buttons but not a property of the code.</p>
+
+    <p>Two failure modes, inverted:</p>
+
+    <h3>Click "New layout"</h3>
+    <p>The rectangles change. <code>renderSeed</code> is untouched, so the random stream that drives <code>pickColor()</code> is the same sequence as before. But the cells it lands on are different. The colors look new. The user reads this as "my palette changed when I asked for new geometry."</p>
+
+    <h3>Click "New colors"</h3>
+    <p>The rectangles do not change. The cells in <code>colorCells</code> and <code>strokeCells</code> are the same arrays of the same rectangles. But the same five-deep stream of decisions per cell now runs against a new seed, so cells flip from filled to empty, stripes flip horizontal to vertical, the white ink moves around. The user reads this as "my layout changed when I asked for new colors." It did not, technically. The cells were unchanged. What changed was every render-time decision about what to put inside them, which is most of what the eye reads as layout.</p>
+
+    <div class="pullquote">
+      <p>The bug was not that the seeds were entangled in any deep way. The seed boundary had been drawn around geometry only, when the user was reading it around the visible result.</p>
+    </div>
+  </section>
+
+  <!-- ── 05 THE FIX ── -->
+  <section class="section" id="fix">
+    <div class="sec-label"><span class="sec-num">05</span>The fix</div>
+    <h2>Move the decisions to where they belonged</h2>
+    <p>A new function, <code>assignCellStructure()</code>, runs immediately after the cells are subdivided. It seeds a dedicated random stream off <code>layoutSeed</code> and walks each cell once, writing the four booleans listed above plus the two stroke rolls.</p>
+    <p>After the fix, the draw pass reseeds with <code>renderSeed</code> only for the palette pick inside <code>pickColor()</code>. Textural decisions get their own reseed off a <code>layoutSeed</code>-derived constant, so palette swaps no longer disturb the line texture.</p>
+
+    <h3>Restructure without rebuild</h3>
+    <p>A subtlety. The four threshold sliders (<code>colorFill</code>, <code>strokeFill</code>, <code>strokeH</code>, <code>whiteOnDark</code>) need to respect the new seeded stream, but they cannot trigger a full geometry rebuild every time the user nudges a value. The sidebar would feel like it was fighting back. So <code>assignCellStructure()</code> got separated from <code>regenerateLayout()</code>, and those four sliders carry a <code>restructure: true</code> flag that re-runs only the per-cell decisions. The cell rectangles stay put.</p>
+    <p>Because the dedicated stream resets to the same seed before every restructure pass, raising a threshold only flips cells whose random roll just crossed the new value. A cell filled at <code>colorFillProb = 0.5</code> stays filled at <code>0.6</code>. The slider feels live and stable, both.</p>
+  </section>
+
+  <!-- ── 06 STROKE VARIANCE ── -->
+  <section class="section" id="variance">
+    <div class="sec-label"><span class="sec-num">06</span>Stroke variance</div>
+    <h2>Per-cell randomization on spacing and weight</h2>
+    <p>The next request was per-cell randomization on stroke spacing and weight. The implementation choice: store the raw <code>random()</code> value on each cell as <code>c.spacingRoll</code> and <code>c.weightRoll</code> in <code>[0,1]</code>, then compute final values at draw time:</p>
+
+<pre class="code-block">const sMul = 1 + (c.spacingRoll * 2 - 1) * 0.7 * params.strokeSpacingVar;
+const wMul = 1 + (c.weightRoll  * 2 - 1) * 0.7 * params.strokeWeightVar;</pre>
+
+    <p>Variance at zero collapses both to the base. Variance at one ranges over <code>base &times; [0.3, 1.7]</code>. The base sliders and the variance sliders all stay fully live, without re-rolling per-cell structure on every drag. The cell that was thickest stays the thickest. Only the magnitudes change.</p>
+    <p>A side effect: when a cell's weight crosses its spacing, the stripes overprint into a solid block. Not clamped. Some compositions benefit from the occasional black square in a field of stripes.</p>
+  </section>
+
+  <!-- ── 07 SPECIMEN NAMES ── -->
+  <section class="section" id="specimens">
+    <div class="sec-label"><span class="sec-num">07</span>Specimen names</div>
+    <h2>A binomial driven by the two seeds</h2>
+    <p>The static <code>specimen m.</code> label was replaced with a Latin binomial driven by the two seeds. The genus is drawn from a fixed pool of forty Latin nouns by <code>layoutSeed % 40</code>. The species is drawn from a fixed pool of forty Latin adjectives by <code>renderSeed % 40</code>.</p>
+
+<pre class="code-block">const POOL_GENUS   = ['Tessella','Tessera','Stratum', ... ];
+const POOL_SPECIES = ['nigrata','albata','picta',     ... ];</pre>
+
+    <p>Modulo, not hash. The mapping is intentionally observable. A user who notices that <em>Tessella</em> recurs every forty layouts has correctly read the system. Same first word, same <code>layoutSeed mod 40</code>. Same second word, same <code>renderSeed mod 40</code>.</p>
+    <p>No Latin grammatical agreement between genus and species. <em>Linea nigrofracta</em> is not classically correct. <em>Granum discolor</em> is shaky. The binomial is a tag, not a taxonomy.</p>
+  </section>
+
+  <!-- ── 08 RANDOMIZE ALL ── -->
+  <section class="section" id="randomize">
+    <div class="sec-label"><span class="sec-num">08</span>Randomize all</div>
+    <h2>One button at the top of the sidebar</h2>
+    <p>A "Randomize all" button at the top of the sidebar walks every slider in the registry. Picks a uniform value snapped to that input's step. Applies it. Flips the share-layouts toggle 50/50. Rerolls both seeds. One button, every parameter, every roll.</p>
+    <p>Aspect ratio is the one slider it does not touch. A canvas that resizes on every reroll is more disruptive than playful, so aspect is opt-in via its own animation toggle below.</p>
+  </section>
+
+  <!-- ── 09 ANIMATION ── -->
+  <section class="section" id="animation">
+    <div class="sec-label"><span class="sec-num">09</span>Animation</div>
+    <h2>Four toggles on the same tick</h2>
+    <p>Four toggles in the Animation section, each ticking on the same setTimeout loop:</p>
+
+    <ul class="cs-list">
+      <li><strong>Animate layout.</strong> Increments <code>layoutSeed</code> by one each tick.</li>
+      <li><strong>Animate colors.</strong> Increments <code>renderSeed</code> by one each tick.</li>
+      <li><strong>Animate ratio.</strong> Steps the aspect slider one notch each tick, wrapping at max back to min.</li>
+      <li><strong>Animate randomization.</strong> Calls the randomize-all path each tick. Subsumes the per-seed paths since both seeds are rerolled anyway.</li>
+    </ul>
+
+    <p>The toggles compose. Layout + colors gives a slow drift through all combinations of the binomial. Ratio + colors morphs the canvas shape while the palette rotates. Animate randomization on its own is full-strobe parameter chaos, useful for finding starting points.</p>
+    <p>A Pause button under the tick interval clears all four toggles and stops the timer in one click. Whatever frame is currently on screen stays put. The user can then save the PNG or SVG of that exact specimen.</p>
+  </section>
+
+  <!-- ── 10 DEFAULTS ── -->
+  <section class="section" id="defaults">
+    <div class="sec-label"><span class="sec-num">10</span>Defaults</div>
+    <h2>A loaded preset, not blank state</h2>
+    <p>The defaults are not a neutral starting point. They are a loaded preset:</p>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>Param</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="tok">aspect</td><td class="val">1.75</td></tr>
+        <tr><td class="tok">colorFillProb</td><td class="val">0.60</td></tr>
+        <tr><td class="tok">blackDominance</td><td class="val">0.87</td></tr>
+        <tr><td class="tok">strokeFillProb</td><td class="val">0.15</td></tr>
+        <tr><td class="tok">strokeHorizontalProb</td><td class="val">0.76</td></tr>
+        <tr><td class="tok">strokeSpacing</td><td class="val">2 px</td></tr>
+        <tr><td class="tok">strokeSpacingVar</td><td class="val">0.39</td></tr>
+        <tr><td class="tok">strokeWeight</td><td class="val">3.9 px</td></tr>
+        <tr><td class="tok">strokeWeightVar</td><td class="val">0.32</td></tr>
+        <tr><td class="tok">whiteOnDarkProb</td><td class="val">0.79</td></tr>
+        <tr><td class="tok">lineBreak</td><td class="val">0.80</td></tr>
+      </tbody>
+    </table>
+
+    <p>Black-dominant, sparse stripes, thick weight, heavy breakage. The starting screen reads as something between a worn poster and a magnified halftone. The user is meant to see what the tool wants to make first, then push it elsewhere.</p>
+
+    <div class="closing">
+      <p>Click "New colors" twenty times. The genus holds. The species rotates: <em>nigrata</em>, <em>albata</em>, <em>picta</em>, <em>variegata</em>, <em>maculata</em>. The rectangles do not move.</p>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="cs-footer">
+    <p>Studio David Preli &mdash; <a href="https://davidpreli.com">davidpreli.com</a></p>
+    <p>Block &amp; Line &mdash; 2026</p>
+  </footer>
+
+</div>
+
+<script>
+// iframe height bridge for parent embedding (Cargo)
+window.addEventListener('load', function () {
+  if (window.parent !== window) {
+    var h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'resize', height: h }, '*');
+  }
+});
+</script>
+</body>
+</html>

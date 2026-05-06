@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block &amp; Line</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:        #e8e4dc;
+    --paper-deep:   #d8d3c8;
+    --ink:          #131210;
+    --ink-soft:     #4a4640;
+    --ink-faint:    #8a857c;
+    --rule:         #131210;
+    --accent:       #c0392b;
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --serif: 'IBM Plex Serif', Georgia, serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.45;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  body::before {
+    /* paper grain */
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    background-image:
+      radial-gradient(rgba(19,18,16,0.04) 1px, transparent 1px),
+      radial-gradient(rgba(19,18,16,0.025) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 252px 1fr;
+    height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  @media (max-width: 560px) {
+    html, body { height: auto; overflow: auto; }
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
+      height: auto;
+      overflow: visible;
+    }
+    aside.controls,
+    main.stage { overflow: visible; }
+    aside.controls { border-right: 0; border-bottom: 1px solid var(--rule); }
+  }
+
+  /* ---------- Sidebar ---------- */
+  aside.controls {
+    border-right: 1px solid var(--rule);
+    padding: 22px 18px 32px 22px;
+    background: var(--paper);
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* minimal scrollbars in the paper aesthetic */
+  aside.controls::-webkit-scrollbar,
+  main.stage::-webkit-scrollbar { width: 6px; height: 6px; }
+  aside.controls::-webkit-scrollbar-track,
+  main.stage::-webkit-scrollbar-track { background: transparent; }
+  aside.controls::-webkit-scrollbar-thumb,
+  main.stage::-webkit-scrollbar-thumb { background: var(--ink-faint); }
+  aside.controls::-webkit-scrollbar-thumb:hover,
+  main.stage::-webkit-scrollbar-thumb:hover { background: var(--ink-soft); }
+  aside.controls, main.stage {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-faint) transparent;
+  }
+
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+  }
+
+  .masthead .eyebrow {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .masthead h1 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px 0;
+  }
+
+  .masthead .sub {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+
+  .group {
+    margin-bottom: 22px;
+  }
+
+  .group-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--ink-faint);
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+  }
+
+  .group-head .label {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .group-head .index {
+    font-size: 9.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .control {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 4px 10px;
+    margin-bottom: 9px;
+  }
+
+  .control .name {
+    font-size: 11.5px;
+    color: var(--ink);
+  }
+
+  .control .value {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 36px;
+  }
+
+  .control input[type="range"] {
+    grid-column: 1 / -1;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 14px;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* track */
+  .control input[type="range"]::-webkit-slider-runnable-track {
+    height: 1px;
+    background: var(--ink);
+    border: none;
+  }
+  .control input[type="range"]::-moz-range-track {
+    height: 1px;
+    background: var(--ink);
+    border: none;
+  }
+
+  /* thumb */
+  .control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 14px;
+    background: var(--ink);
+    border: none;
+    margin-top: -6.5px;
+    cursor: grab;
+  }
+  .control input[type="range"]::-moz-range-thumb {
+    width: 10px;
+    height: 14px;
+    background: var(--ink);
+    border: none;
+    border-radius: 0;
+    cursor: grab;
+  }
+  .control input[type="range"]:active::-webkit-slider-thumb { cursor: grabbing; }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 9px;
+    font-size: 11.5px;
+  }
+
+  .toggle input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 26px;
+    height: 14px;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    transition: background 0.12s;
+  }
+  .toggle input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 10px;
+    height: 10px;
+    background: var(--ink);
+    transition: transform 0.12s;
+  }
+  .toggle input[type="checkbox"]:checked::after {
+    transform: translateX(12px);
+  }
+
+  /* Buttons */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 22px;
+  }
+
+  button.btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 9px 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.1s, color 0.1s;
+  }
+  button.btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  button.btn .glyph {
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  button.btn.primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  button.btn.primary:hover {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  /* ---------- Canvas area ---------- */
+  main.stage {
+    padding: 26px 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    overflow-y: auto;
+  }
+
+  .stage-head {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  .stage-head .id {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  .stage-head .seeds {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  #canvas-container {
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: var(--aspect, 1 / 1);
+    background: transparent;
+    position: relative;
+  }
+
+  #canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+
+  .stage-foot {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink-faint);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--ink-faint);
+    padding-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="controls">
+
+    <header class="masthead">
+      <div class="eyebrow">
+        <span>PATTERNS</span>
+        <span>p5.js</span>
+      </div>
+      <h1>Block &amp; Line</h1>
+      <p class="sub">Two recursive subdivisions, stacked. One handles color. One handles strokes. They don't always agree on where the edges go.</p>
+    </header>
+
+    <div class="actions" style="margin-top:0; margin-bottom:22px;">
+      <button class="btn primary" id="randomizeAll">
+        <span>Randomize all</span>
+        <span class="glyph">⟳</span>
+      </button>
+    </div>
+
+    <!-- COMPOSITION -->
+    <section class="group">
+      <div class="group-head">
+        <span class="label">Composition</span>
+        <span class="index">i.</span>
+      </div>
+
+      <div class="control">
+        <span class="name">Aspect ratio <em style="font-style:italic; color:var(--ink-faint)">(W:H)</em></span>
+        <span class="value" id="v-aspect">—</span>
+        <input type="range" id="aspect" min="50" max="200" step="5" value="175">
+      </div>
+
+      <div class="control">
+        <span class="name">Color granularity</span>
+        <span class="value" id="v-colorMin">—</span>
+        <input type="range" id="colorMin" min="14" max="120" step="1" value="33">
+      </div>
+
+      <div class="control">
+        <span class="name">Color split bias <em style="font-style:italic; color:var(--ink-faint)">(H↔V)</em></span>
+        <span class="value" id="v-colorBias">—</span>
+        <input type="range" id="colorBias" min="0" max="100" step="1" value="68">
+      </div>
+
+      <div class="control">
+        <span class="name">Stroke granularity</span>
+        <span class="value" id="v-strokeMin">—</span>
+        <input type="range" id="strokeMin" min="14" max="120" step="1" value="71">
+      </div>
+
+      <div class="control">
+        <span class="name">Stroke split bias <em style="font-style:italic; color:var(--ink-faint)">(H↔V)</em></span>
+        <span class="value" id="v-strokeBias">—</span>
+        <input type="range" id="strokeBias" min="0" max="100" step="1" value="64">
+      </div>
+
+      <div class="toggle">
+        <span>Share layouts</span>
+        <input type="checkbox" id="shareLayouts">
+      </div>
+    </section>
+
+    <!-- COLOR -->
+    <section class="group">
+      <div class="group-head">
+        <span class="label">Color Layer</span>
+        <span class="index">ii.</span>
+      </div>
+
+      <div class="control">
+        <span class="name">Fill density</span>
+        <span class="value" id="v-colorFill">—</span>
+        <input type="range" id="colorFill" min="0" max="100" step="1" value="60">
+      </div>
+
+      <div class="control">
+        <span class="name">Black dominance</span>
+        <span class="value" id="v-blackDom">—</span>
+        <input type="range" id="blackDom" min="0" max="100" step="1" value="87">
+      </div>
+    </section>
+
+    <!-- STROKE -->
+    <section class="group">
+      <div class="group-head">
+        <span class="label">Stroke Layer</span>
+        <span class="index">iii.</span>
+      </div>
+
+      <div class="control">
+        <span class="name">Fill density</span>
+        <span class="value" id="v-strokeFill">—</span>
+        <input type="range" id="strokeFill" min="0" max="100" step="1" value="15">
+      </div>
+
+      <div class="control">
+        <span class="name">Horizontal share</span>
+        <span class="value" id="v-strokeH">—</span>
+        <input type="range" id="strokeH" min="0" max="100" step="1" value="76">
+      </div>
+
+      <div class="control">
+        <span class="name">Spacing</span>
+        <span class="value" id="v-spacing">—</span>
+        <input type="range" id="spacing" min="2" max="14" step="1" value="2">
+      </div>
+
+      <div class="control">
+        <span class="name">Spacing variance</span>
+        <span class="value" id="v-spacingVar">—</span>
+        <input type="range" id="spacingVar" min="0" max="100" step="1" value="39">
+      </div>
+
+      <div class="control">
+        <span class="name">Weight</span>
+        <span class="value" id="v-weight">—</span>
+        <input type="range" id="weight" min="1" max="5" step="0.1" value="3.9">
+      </div>
+
+      <div class="control">
+        <span class="name">Weight variance</span>
+        <span class="value" id="v-weightVar">—</span>
+        <input type="range" id="weightVar" min="0" max="100" step="1" value="32">
+      </div>
+
+      <div class="control">
+        <span class="name">White-on-dark share</span>
+        <span class="value" id="v-whiteOnDark">—</span>
+        <input type="range" id="whiteOnDark" min="0" max="100" step="1" value="79">
+      </div>
+    </section>
+
+    <!-- TEXTURE -->
+    <section class="group">
+      <div class="group-head">
+        <span class="label">Texture</span>
+        <span class="index">iv.</span>
+      </div>
+
+      <div class="control">
+        <span class="name">Paper grain</span>
+        <span class="value" id="v-grain">—</span>
+        <input type="range" id="grain" min="0" max="100" step="1" value="57">
+      </div>
+
+      <div class="control">
+        <span class="name">Line jitter</span>
+        <span class="value" id="v-jitter">—</span>
+        <input type="range" id="jitter" min="0" max="100" step="1" value="2">
+      </div>
+
+      <div class="control">
+        <span class="name">Line breakage</span>
+        <span class="value" id="v-break">—</span>
+        <input type="range" id="break" min="0" max="100" step="1" value="80">
+      </div>
+    </section>
+
+    <!-- ANIMATION -->
+    <section class="group">
+      <div class="group-head">
+        <span class="label">Animation</span>
+        <span class="index">v.</span>
+      </div>
+
+      <div class="toggle">
+        <span>Animate layout</span>
+        <input type="checkbox" id="animLayout">
+      </div>
+
+      <div class="toggle">
+        <span>Animate colors</span>
+        <input type="checkbox" id="animColors">
+      </div>
+
+      <div class="toggle">
+        <span>Animate ratio</span>
+        <input type="checkbox" id="animRatio">
+      </div>
+
+      <div class="toggle">
+        <span>Animate randomization</span>
+        <input type="checkbox" id="animAll">
+      </div>
+
+      <div class="control">
+        <span class="name">Tick interval</span>
+        <span class="value" id="v-animSpeed">—</span>
+        <input type="range" id="animSpeed" min="120" max="2000" step="20" value="500">
+      </div>
+
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn" id="pauseAnims">
+          <span>Pause animations</span>
+          <span class="glyph">‖</span>
+        </button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn" id="newLayout">
+        <span>New layout</span>
+        <span class="glyph">↻</span>
+      </button>
+      <button class="btn" id="newColors">
+        <span>New colors</span>
+        <span class="glyph">↻</span>
+      </button>
+      <button class="btn primary" id="savePNG">
+        <span>Save PNG</span>
+        <span class="glyph">↓</span>
+      </button>
+      <button class="btn primary" id="saveSVG">
+        <span>Save SVG</span>
+        <span class="glyph">↓</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <main class="stage">
+    <div class="stage-head">
+      <span class="id">specimen <em id="specimenName">m.</em></span>
+      <span class="seeds" id="seedDisplay">L:0001 / R:0001</span>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div class="stage-foot">
+      <span>recursive subdivision · two-layer overprint</span>
+      <span>1:1</span>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* =====================================================================
+   BLOCK PATTERN GENERATOR
+   p5.js · two-layer recursive subdivision with overprint strokes
+   ===================================================================== */
+
+const PALETTE = [
+  '#0e0e0e',  // [0] near-black
+  '#f4f3ee',  // [1] off-white
+  '#d83b27',  // [2] red-orange
+  '#e0b020',  // [3] mustard yellow
+  '#c63a76',  // [4] magenta
+  '#3d7bb0',  // [5] blue
+  '#2a6f38',  // [6] forest green
+  '#5b1d14',  // [7] dark red
+  '#6f6c66',  // [8] gray
+];
+
+const POOL_GENUS = [
+  'Tessella','Tessera','Stratum','Lamina','Reticulum','Crusta','Tabula',
+  'Sectio','Pictura','Schema','Forma','Figura','Quadra','Mosaicum',
+  'Vexillum','Textus','Plexus','Fragmentum','Codex','Folium','Linea',
+  'Acies','Cuneus','Limen','Pavimentum','Tegula','Lacuna','Caesura',
+  'Cancellum','Theca','Velum','Granum','Massa','Junctura','Areola',
+  'Pagina','Crates','Margo','Series','Ordo'
+];
+
+const POOL_SPECIES = [
+  'nigrata','albata','picta','variegata','maculata','striata','lineata',
+  'vittata','costata','fracta','secta','divisa','truncata','cinerea',
+  'cruenta','crocea','flava','rubra','caerulea','viridis','fusca',
+  'atrata','lurida','pallida','densa','sparsa','compacta','obscura',
+  'clara','punctata','fasciata','zonata','plicata','discolor',
+  'polystriata','polychroma','monochroma','nigrofracta','albicostata',
+  'erythrostriata'
+];
+
+function getSpecimenName(layoutSeed, renderSeed) {
+  const g = POOL_GENUS[layoutSeed % POOL_GENUS.length];
+  const s = POOL_SPECIES[renderSeed % POOL_SPECIES.length];
+  return { genus: g, species: s };
+}
+
+// state
+const params = {
+  // canvas
+  aspect: 1.75,           // w / h, 0.5..2.0
+  // composition
+  colorMinSize: 33,
+  colorSplitBias: 0.68,   // 0 = always horizontal split, 1 = always vertical
+  strokeMinSize: 71,
+  strokeSplitBias: 0.64,
+  shareLayouts: false,
+  // color
+  colorFillProb: 0.60,
+  blackDominance: 0.87,
+  // stroke
+  strokeFillProb: 0.15,
+  strokeHorizontalProb: 0.76,
+  strokeSpacing: 2,
+  strokeSpacingVar: 0.39,  // 0..1 — per-cell multiplier ranges over [1 ± 0.7v]
+  strokeWeight: 3.9,
+  strokeWeightVar: 0.32,
+  whiteOnDarkProb: 0.79,
+  // texture
+  paperGrain: 0.57,
+  lineJitter: 0.02,
+  lineBreak: 0.80,
+};
+
+let layoutSeed = 1001;
+let renderSeed = 4242;
+
+let colorCells = [];
+let strokeCells = [];
+
+// Geometry buffer — populated during draw, consumed by SVG export
+let renderedGeometry = { rects: [], lines: [] };
+
+// Animation
+let animateLayout = false;
+let animateColors = false;
+let animateRatio = false;
+let animateAll = false;
+let animationSpeed = 500;
+let animationTimer = null;
+
+const LONG_SIDE = 720;          // longest dimension stays fixed
+let CANVAS_W = LONG_SIDE;
+let CANVAS_H = LONG_SIDE;
+
+function computeCanvasSize() {
+  const a = params.aspect;
+  if (a >= 1) {
+    CANVAS_W = LONG_SIDE;
+    CANVAS_H = Math.round(LONG_SIDE / a);
+  } else {
+    CANVAS_W = Math.round(LONG_SIDE * a);
+    CANVAS_H = LONG_SIDE;
+  }
+}
+
+const sketch = (p) => {
+
+  let pPaper = null;   // cached paper texture (offscreen graphics)
+
+  p.setup = function() {
+    computeCanvasSize();
+    const cnv = p.createCanvas(CANVAS_W, CANVAS_H);
+    cnv.parent('canvas-container');
+    p.pixelDensity(2);
+    p.noLoop();
+    buildPaperTexture();
+    regenerateLayout();
+    p.redraw();
+  };
+
+  function buildPaperTexture() {
+    pPaper = p.createGraphics(CANVAS_W, CANVAS_H);
+    pPaper.pixelDensity(2);
+    pPaper.background('#e8e4dc');
+    pPaper.noStroke();
+    pPaper.noiseSeed(1234);          // fixed so paper is stable across redraws
+    const step = 4;
+    for (let y = 0; y < CANVAS_H; y += step) {
+      for (let x = 0; x < CANVAS_W; x += step) {
+        const n = pPaper.noise(x * 0.004, y * 0.004);
+        if (n > 0.55) {
+          pPaper.fill(216, 211, 200, (n - 0.55) * 200);
+          pPaper.rect(x, y, step, step);
+        }
+      }
+    }
+  }
+
+  p.draw = function() {
+    // reset geometry buffer for SVG export
+    renderedGeometry = { rects: [], lines: [] };
+
+    drawPaperBackground();
+
+    // Color picks come from the renderSeed stream — this is the only thing
+    // "New colors" should change.
+    p.randomSeed(renderSeed);
+    p.noiseSeed(renderSeed);
+
+    for (const c of colorCells) {
+      if (!c.filled) continue;
+      const col = pickColor();
+      p.noStroke();
+      p.fill(col);
+      p.rect(c.x, c.y, c.w, c.h);
+      renderedGeometry.rects.push({
+        x: c.x, y: c.y, w: c.w, h: c.h, color: col
+      });
+    }
+
+    // Stroke jitter/break is textural and tied to layout, not palette —
+    // re-seed so "New colors" leaves the line texture untouched.
+    p.randomSeed(layoutSeed * 1009 + 23);
+
+    for (const c of strokeCells) {
+      if (!c.strokeFilled) continue;
+      drawStrokeCell(c);
+    }
+
+    // grain overlay (subtle, on top of everything)
+    drawGrainOverlay();
+
+    // outer frame edge — soft
+    p.noFill();
+    p.stroke(19, 18, 16, 18);
+    p.strokeWeight(1);
+    p.rect(0.5, 0.5, p.width - 1, p.height - 1);
+  };
+
+  /* ---------------- subdivision ---------------- */
+
+  function regenerateLayout() {
+    p.randomSeed(layoutSeed);
+    p.noiseSeed(layoutSeed);
+    colorCells = subdivide(0, 0, p.width, p.height, 0,
+                           params.colorMinSize, params.colorSplitBias);
+
+    if (params.shareLayouts) {
+      strokeCells = colorCells.slice();
+    } else {
+      // independent stream — re-seed for stroke layer
+      p.randomSeed(layoutSeed * 7919 + 13);
+      strokeCells = subdivide(0, 0, p.width, p.height, 0,
+                              params.strokeMinSize, params.strokeSplitBias);
+    }
+
+    assignCellStructure();
+  }
+
+  // Per-cell structural decisions (filled, stroke direction, stroke color
+  // variant). Tied to layoutSeed so renderSeed changes don't reshuffle them,
+  // and using a dedicated stream so changing the threshold sliders only
+  // flips cells whose roll crossed the new threshold — order stays stable.
+  function assignCellStructure() {
+    p.randomSeed(layoutSeed * 31 + 7);
+    for (const c of colorCells) {
+      c.filled = p.random() < params.colorFillProb;
+    }
+    for (const c of strokeCells) {
+      c.strokeFilled = p.random() < params.strokeFillProb;
+      c.horizontal   = p.random() < params.strokeHorizontalProb;
+      c.whiteOnDark  = p.random() < params.whiteOnDarkProb;
+      // Raw rolls in [0,1]; final spacing/weight derived at draw time so the
+      // base & variance sliders stay live without re-rolling structure.
+      c.spacingRoll  = p.random();
+      c.weightRoll   = p.random();
+    }
+  }
+
+  function subdivide(x, y, w, h, depth, minSize, splitBias) {
+    const canSplitV = w >= minSize * 2;
+    const canSplitH = h >= minSize * 2;
+
+    if (!canSplitV && !canSplitH) return [{x, y, w, h}];
+
+    // probabilistic stop: deeper cells more likely to stop
+    // and very large cells almost always split
+    const sizeRatio = (w * h) / (p.width * p.height);
+    const stopProb = p.constrain(0.08 + depth * 0.08 - sizeRatio * 0.6, 0, 0.85);
+    if (depth > 1 && p.random() < stopProb) return [{x, y, w, h}];
+
+    // direction selection — bias toward splitting the longer dimension
+    // mixed with the user-supplied bias (0..1: H..V)
+    let splitV;
+    if (canSplitV && !canSplitH) splitV = true;
+    else if (!canSplitV && canSplitH) splitV = false;
+    else {
+      const aspect = w / (w + h);            // 0..1, > 0.5 means wide
+      // when aspect is wide we want vertical split (cuts the width)
+      const naturalP = aspect;
+      // user bias 0..1 lerped into the choice
+      const finalP = p.lerp(naturalP, splitBias, 0.55);
+      splitV = p.random() < finalP;
+    }
+
+    const t = p.random(0.30, 0.70);
+
+    if (splitV) {
+      const sx = p.round(w * t);
+      // ensure both children are >= minSize (or just >0)
+      const a = sx, b = w - sx;
+      return [
+        ...subdivide(x,      y, a, h, depth + 1, minSize, splitBias),
+        ...subdivide(x + a,  y, b, h, depth + 1, minSize, splitBias),
+      ];
+    } else {
+      const sy = p.round(h * t);
+      const a = sy, b = h - sy;
+      return [
+        ...subdivide(x, y,     w, a, depth + 1, minSize, splitBias),
+        ...subdivide(x, y + a, w, b, depth + 1, minSize, splitBias),
+      ];
+    }
+  }
+
+  /* ---------------- color picking ---------------- */
+
+  function pickColor() {
+    if (p.random() < params.blackDominance) return PALETTE[0];
+    // pick from non-black palette, weighted slightly against pure white
+    const pool = [
+      PALETTE[1],  // white
+      PALETTE[2], PALETTE[2],
+      PALETTE[3], PALETTE[3],
+      PALETTE[4], PALETTE[4],
+      PALETTE[5], PALETTE[5], PALETTE[5],
+      PALETTE[6], PALETTE[6],
+      PALETTE[7],
+      PALETTE[8],
+    ];
+    return pool[p.floor(p.random(pool.length))];
+  }
+
+  /* ---------------- stroke rendering ---------------- */
+
+  // current stroke style — set per stroke cell, used by drawJitteredLine
+  // for both rendering and geometry-buffer recording
+  let _curStrokeHex = '#0d0d0d';
+  let _curStrokeWeight = 1;
+
+  function drawStrokeCell(c) {
+    const horizontal = c.horizontal;
+    _curStrokeHex    = c.whiteOnDark ? '#f4f3ee' : '#0d0d0d';
+
+    // Map roll [0,1] → multiplier [1 - 0.7v, 1 + 0.7v]; v=0 collapses to base.
+    const sMul = 1 + (c.spacingRoll * 2 - 1) * 0.7 * params.strokeSpacingVar;
+    const wMul = 1 + (c.weightRoll  * 2 - 1) * 0.7 * params.strokeWeightVar;
+    const spacing    = params.strokeSpacing * sMul;
+    _curStrokeWeight = params.strokeWeight  * wMul;
+
+    p.stroke(_curStrokeHex);
+    p.strokeWeight(_curStrokeWeight);
+    p.strokeCap(p.SQUARE);
+    p.noFill();
+
+    const insetX = 0.5;
+    const insetY = 0.5;
+
+    if (horizontal) {
+      for (let yy = c.y + spacing * 0.5; yy < c.y + c.h - 0.1; yy += spacing) {
+        drawJitteredLine(c.x + insetX, yy, c.x + c.w - insetX, yy, false);
+      }
+    } else {
+      for (let xx = c.x + spacing * 0.5; xx < c.x + c.w - 0.1; xx += spacing) {
+        drawJitteredLine(xx, c.y + insetY, xx, c.y + c.h - insetY, true);
+      }
+    }
+  }
+
+  function drawJitteredLine(x1, y1, x2, y2, vertical) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = p.sqrt(dx*dx + dy*dy);
+    const seg = 5;
+    const steps = p.max(2, p.ceil(len / seg));
+    const j = params.lineJitter * 0.9;
+    const breakChance = params.lineBreak;
+    const px = -dy / len, py = dx / len;
+
+    let drawing = true;
+    let prevX, prevY;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      let x = p.lerp(x1, x2, t);
+      let y = p.lerp(y1, y2, t);
+      if (i > 0 && i < steps && j > 0) {
+        const off = (p.random() - 0.5) * j * 2;
+        x += px * off;
+        y += py * off;
+      }
+
+      const breakHere = (i > 0 && i < steps && p.random() < breakChance);
+
+      if (breakHere) {
+        drawing = false;
+      } else {
+        if (drawing && i > 0) {
+          p.line(prevX, prevY, x, y);
+          renderedGeometry.lines.push({
+            x1: prevX, y1: prevY, x2: x, y2: y,
+            color: _curStrokeHex, weight: _curStrokeWeight
+          });
+        }
+        drawing = true;
+      }
+      prevX = x; prevY = y;
+    }
+  }
+
+  /* ---------------- texture passes ---------------- */
+
+  function drawPaperBackground() {
+    // base paper from cached buffer (the slow noise loop only runs once)
+    if (pPaper) {
+      p.image(pPaper, 0, 0, p.width, p.height);
+    } else {
+      p.background('#e8e4dc');
+    }
+
+    // sparse fiber specks — fast, redrawn each frame for live grain
+    p.noStroke();
+    const speckCount = 1200 + 1200 * params.paperGrain;
+    for (let i = 0; i < speckCount; i++) {
+      const a = p.random(8, 28);
+      p.fill(20, 18, 14, a);
+      p.rect(p.random(p.width), p.random(p.height),
+             p.random(0.5, 1.6), p.random(0.5, 1.6));
+    }
+  }
+
+  function drawGrainOverlay() {
+    // top dust pass — gives ink+paper interaction without obscuring
+    p.noStroke();
+    const dustCount = 600 + 1500 * params.paperGrain;
+    for (let i = 0; i < dustCount; i++) {
+      p.fill(20, 18, 14, p.random(10, 35));
+      p.rect(p.random(p.width), p.random(p.height),
+             p.random(0.4, 1.3), p.random(0.4, 1.3));
+    }
+    // tiny lighter flecks to add tooth
+    for (let i = 0; i < dustCount * 0.4; i++) {
+      p.fill(245, 242, 232, p.random(20, 60));
+      p.rect(p.random(p.width), p.random(p.height),
+             p.random(0.4, 1.0), p.random(0.4, 1.0));
+    }
+  }
+
+  /* ---------------- public hooks ---------------- */
+
+  p._regenerateLayout = regenerateLayout;
+  p._assignCellStructure = assignCellStructure;
+  p._resizeForAspect = function() {
+    computeCanvasSize();
+    p.resizeCanvas(CANVAS_W, CANVAS_H);
+    document.getElementById('canvas-container').style.setProperty(
+      '--aspect', `${params.aspect}`
+    );
+    buildPaperTexture();
+    regenerateLayout();
+  };
+  p._savePNG = function() {
+    p.saveCanvas('block-pattern_L' + layoutSeed + '_R' + renderSeed, 'png');
+  };
+};
+
+const myP5 = new p5(sketch);
+
+/* =====================================================================
+   UI WIRING
+   ===================================================================== */
+
+function $(id) { return document.getElementById(id); }
+
+const ui = {
+  aspect:      { el: $('aspect'),      out: $('v-aspect'),
+                 fmt: v => (v/100).toFixed(2),
+                 apply: v => params.aspect = v/100,           resize: true },
+  colorMin:    { el: $('colorMin'),    out: $('v-colorMin'),    fmt: v => v + 'px',
+                 apply: v => params.colorMinSize = +v,        regen: true },
+  colorBias:   { el: $('colorBias'),   out: $('v-colorBias'),   fmt: v => (v/100).toFixed(2),
+                 apply: v => params.colorSplitBias = v/100,   regen: true },
+  strokeMin:   { el: $('strokeMin'),   out: $('v-strokeMin'),   fmt: v => v + 'px',
+                 apply: v => params.strokeMinSize = +v,        regen: true },
+  strokeBias:  { el: $('strokeBias'),  out: $('v-strokeBias'),  fmt: v => (v/100).toFixed(2),
+                 apply: v => params.strokeSplitBias = v/100,  regen: true },
+
+  colorFill:   { el: $('colorFill'),   out: $('v-colorFill'),   fmt: v => v + '%',
+                 apply: v => params.colorFillProb = v/100,    restructure: true },
+  blackDom:    { el: $('blackDom'),    out: $('v-blackDom'),    fmt: v => v + '%',
+                 apply: v => params.blackDominance = v/100,   regen: false },
+
+  strokeFill:  { el: $('strokeFill'),  out: $('v-strokeFill'),  fmt: v => v + '%',
+                 apply: v => params.strokeFillProb = v/100,   restructure: true },
+  strokeH:     { el: $('strokeH'),     out: $('v-strokeH'),     fmt: v => v + '%',
+                 apply: v => params.strokeHorizontalProb = v/100, restructure: true },
+  spacing:     { el: $('spacing'),     out: $('v-spacing'),     fmt: v => v + 'px',
+                 apply: v => params.strokeSpacing = +v,        regen: false },
+  spacingVar:  { el: $('spacingVar'),  out: $('v-spacingVar'),  fmt: v => v + '%',
+                 apply: v => params.strokeSpacingVar = v/100,  regen: false },
+  weight:      { el: $('weight'),      out: $('v-weight'),      fmt: v => (+v).toFixed(1) + 'px',
+                 apply: v => params.strokeWeight = +v,         regen: false },
+  weightVar:   { el: $('weightVar'),   out: $('v-weightVar'),   fmt: v => v + '%',
+                 apply: v => params.strokeWeightVar = v/100,   regen: false },
+  whiteOnDark: { el: $('whiteOnDark'), out: $('v-whiteOnDark'), fmt: v => v + '%',
+                 apply: v => params.whiteOnDarkProb = v/100,  restructure: true },
+
+  grain:       { el: $('grain'),       out: $('v-grain'),       fmt: v => v + '%',
+                 apply: v => params.paperGrain = v/100,       regen: false },
+  jitter:      { el: $('jitter'),      out: $('v-jitter'),      fmt: v => v + '%',
+                 apply: v => params.lineJitter = v/100,       regen: false },
+  break:       { el: $('break'),       out: $('v-break'),       fmt: v => v + '%',
+                 apply: v => params.lineBreak = v/100,        regen: false },
+};
+
+const shareEl = $('shareLayouts');
+
+function updateAll() {
+  for (const key in ui) {
+    const c = ui[key];
+    const v = c.el.value;
+    c.apply(v);
+    c.out.textContent = c.fmt(v);
+  }
+  params.shareLayouts = shareEl.checked;
+}
+
+function updateSeedDisplay() {
+  const fmt = n => String(n).padStart(4, '0');
+  $('seedDisplay').textContent = `L:${fmt(layoutSeed)} / R:${fmt(renderSeed)}`;
+  const { genus, species } = getSpecimenName(layoutSeed, renderSeed);
+  $('specimenName').textContent = `${genus} ${species}`;
+}
+
+// wire up sliders
+for (const key in ui) {
+  const c = ui[key];
+  c.el.addEventListener('input', () => {
+    const v = c.el.value;
+    c.apply(v);
+    c.out.textContent = c.fmt(v);
+    if (c.resize)            myP5._resizeForAspect();
+    else if (c.regen)        myP5._regenerateLayout();
+    else if (c.restructure)  myP5._assignCellStructure();
+    myP5.redraw();
+  });
+}
+
+shareEl.addEventListener('change', () => {
+  params.shareLayouts = shareEl.checked;
+  myP5._regenerateLayout();
+  myP5.redraw();
+});
+
+// buttons
+$('newLayout').addEventListener('click', () => {
+  layoutSeed = Math.floor(Math.random() * 9999) + 1;
+  myP5._regenerateLayout();
+  updateSeedDisplay();
+  myP5.redraw();
+});
+
+$('newColors').addEventListener('click', () => {
+  renderSeed = Math.floor(Math.random() * 9999) + 1;
+  updateSeedDisplay();
+  myP5.redraw();
+});
+
+function randomizeAll() {
+  // Walk every slider in the ui registry, pick a uniform value snapped to the
+  // input's step, and apply it. Aspect is skipped — it's opt-in via the
+  // "Animate ratio" toggle, since rerolling the canvas shape per click was
+  // more disruptive than playful.
+  for (const key in ui) {
+    if (key === 'aspect') continue;
+    const c = ui[key];
+    const min  = +c.el.min;
+    const max  = +c.el.max;
+    const step = +c.el.step || 1;
+    let v = Math.random() * (max - min) + min;
+    v = Math.round((v - min) / step) * step + min;
+    if (v > max) v = max;
+    if (v < min) v = min;
+    c.el.value = v;
+    c.apply(v);
+    c.out.textContent = c.fmt(v);
+  }
+
+  shareEl.checked = Math.random() < 0.5;
+  params.shareLayouts = shareEl.checked;
+
+  layoutSeed = Math.floor(Math.random() * 9999) + 1;
+  renderSeed = Math.floor(Math.random() * 9999) + 1;
+
+  myP5._regenerateLayout();
+  updateSeedDisplay();
+  myP5.redraw();
+}
+
+$('randomizeAll').addEventListener('click', randomizeAll);
+
+$('savePNG').addEventListener('click', () => {
+  myP5._savePNG();
+});
+
+/* ---------------- SVG export ---------------- */
+$('saveSVG').addEventListener('click', () => {
+  exportSVG();
+});
+
+function escAttr(v) {
+  return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function exportSVG() {
+  const w = CANVAS_W, h = CANVAS_H;
+  const out = [];
+  out.push('<?xml version="1.0" encoding="UTF-8"?>');
+  out.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" ` +
+    `viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" ` +
+    `shape-rendering="crispEdges">`
+  );
+  out.push(`  <desc>Block Pattern · L${layoutSeed} R${renderSeed}</desc>`);
+
+  // paper ground (solid — texture intentionally omitted for clean vector)
+  out.push(`  <rect width="${w}" height="${h}" fill="#e8e4dc"/>`);
+
+  // color layer
+  out.push(`  <g id="color-layer">`);
+  for (const r of renderedGeometry.rects) {
+    out.push(
+      `    <rect x="${r.x.toFixed(2)}" y="${r.y.toFixed(2)}" ` +
+      `width="${r.w.toFixed(2)}" height="${r.h.toFixed(2)}" ` +
+      `fill="${escAttr(r.color)}"/>`
+    );
+  }
+  out.push(`  </g>`);
+
+  // stroke layer — group by (color, weight) to keep file size sane
+  // and to give the user clean edit groups in Illustrator
+  const groups = new Map();
+  for (const l of renderedGeometry.lines) {
+    const key = `${l.color}|${l.weight}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(l);
+  }
+
+  out.push(`  <g id="stroke-layer" stroke-linecap="square" fill="none">`);
+  let groupIdx = 0;
+  for (const [key, ls] of groups) {
+    const [color, weight] = key.split('|');
+    out.push(
+      `    <g id="strokes-${groupIdx++}" ` +
+      `stroke="${escAttr(color)}" stroke-width="${weight}">`
+    );
+    for (const l of ls) {
+      out.push(
+        `      <line x1="${l.x1.toFixed(2)}" y1="${l.y1.toFixed(2)}" ` +
+        `x2="${l.x2.toFixed(2)}" y2="${l.y2.toFixed(2)}"/>`
+      );
+    }
+    out.push(`    </g>`);
+  }
+  out.push(`  </g>`);
+
+  out.push(`</svg>`);
+
+  const svg = out.join('\n');
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `block-pattern_L${layoutSeed}_R${renderSeed}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------------- Animation ---------------- */
+function animationActive() {
+  return animateLayout || animateColors || animateRatio || animateAll;
+}
+
+function animationTick() {
+  if (animateAll) {
+    // Subsumes the per-seed paths — randomizeAll() rerolls both seeds and
+    // every slider (except aspect), then runs the regenerate + redraw itself.
+    randomizeAll();
+  } else {
+    if (animateLayout) {
+      layoutSeed = (layoutSeed % 9999) + 1;
+    }
+    if (animateColors) {
+      renderSeed = (renderSeed % 9999) + 1;
+    }
+    if (animateRatio) {
+      // Sweep the aspect slider one step per tick, wrapping at max → min.
+      const el   = $('aspect');
+      const min  = +el.min;
+      const max  = +el.max;
+      const step = +el.step || 1;
+      let v = +el.value + step;
+      if (v > max) v = min;
+      el.value = v;
+      ui.aspect.apply(v);
+      ui.aspect.out.textContent = ui.aspect.fmt(v);
+    }
+
+    // _resizeForAspect() rebuilds paper + regenerates internally, so prefer
+    // it when aspect moved. Otherwise just regenerate if the layout seed
+    // changed; if neither moved (colors-only tick), skip both.
+    if (animateRatio) {
+      myP5._resizeForAspect();
+    } else if (animateLayout) {
+      myP5._regenerateLayout();
+    }
+    updateSeedDisplay();
+    myP5.redraw();
+  }
+  // self-rescheduling — never queues, always waits for previous draw to finish
+  if (animationActive()) {
+    animationTimer = setTimeout(animationTick, animationSpeed);
+  }
+}
+
+function startAnimation() {
+  stopAnimation();
+  if (!animationActive()) return;
+  animationTimer = setTimeout(animationTick, animationSpeed);
+}
+
+function stopAnimation() {
+  if (animationTimer) {
+    clearTimeout(animationTimer);
+    animationTimer = null;
+  }
+}
+
+$('animLayout').addEventListener('change', (e) => {
+  animateLayout = e.target.checked;
+  if (animationActive()) startAnimation();
+  else stopAnimation();
+});
+
+$('animColors').addEventListener('change', (e) => {
+  animateColors = e.target.checked;
+  if (animationActive()) startAnimation();
+  else stopAnimation();
+});
+
+$('animRatio').addEventListener('change', (e) => {
+  animateRatio = e.target.checked;
+  if (animationActive()) startAnimation();
+  else stopAnimation();
+});
+
+$('animAll').addEventListener('change', (e) => {
+  animateAll = e.target.checked;
+  if (animationActive()) startAnimation();
+  else stopAnimation();
+});
+
+$('pauseAnims').addEventListener('click', () => {
+  animateLayout = false;
+  animateColors = false;
+  animateRatio  = false;
+  animateAll    = false;
+  $('animLayout').checked = false;
+  $('animColors').checked = false;
+  $('animRatio').checked  = false;
+  $('animAll').checked    = false;
+  stopAnimation();
+});
+
+$('animSpeed').addEventListener('input', (e) => {
+  animationSpeed = +e.target.value;
+  $('v-animSpeed').textContent = animationSpeed + 'ms';
+});
+
+// initialize display values
+updateAll();
+updateSeedDisplay();
+$('v-animSpeed').textContent = animationSpeed + 'ms';
+
+</script>
+
+</body>
+</html>
