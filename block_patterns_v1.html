@@ -21,6 +21,15 @@
     --serif: 'IBM Plex Serif', Georgia, serif;
   }
 
+  :root[data-theme="dark"] {
+    --paper:        #1a1714;
+    --paper-deep:   #242017;
+    --ink:          #e8e4dc;
+    --ink-soft:     #b8b3a8;
+    --ink-faint:    #6a655c;
+    --rule:         #e8e4dc;
+  }
+
   * { box-sizing: border-box; }
 
   html, body {
@@ -49,6 +58,13 @@
     background-position: 0 0, 1px 2px;
     mix-blend-mode: multiply;
     opacity: 0.6;
+  }
+
+  :root[data-theme="dark"] body::before {
+    background-image:
+      radial-gradient(rgba(232,228,220,0.05) 1px, transparent 1px),
+      radial-gradient(rgba(232,228,220,0.03) 1px, transparent 1px);
+    mix-blend-mode: screen;
   }
 
   .app {
@@ -112,6 +128,19 @@
     display: flex;
     justify-content: space-between;
   }
+
+  .theme-toggle {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--ink); }
 
   .masthead h1 {
     font-family: var(--serif);
@@ -370,7 +399,7 @@
     <header class="masthead">
       <div class="eyebrow">
         <span>PATTERNS</span>
-        <span>p5.js</span>
+        <span>p5.js · <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">DARK</button></span>
       </div>
       <h1>Block &amp; Line</h1>
       <p class="sub">Two recursive subdivisions, stacked. One handles color. One handles strokes. They don't always agree on where the edges go.</p>
@@ -531,12 +560,12 @@
 
       <div class="toggle">
         <span>Animate layout</span>
-        <input type="checkbox" id="animLayout">
+        <input type="checkbox" id="animLayout" checked>
       </div>
 
       <div class="toggle">
         <span>Animate colors</span>
-        <input type="checkbox" id="animColors">
+        <input type="checkbox" id="animColors" checked>
       </div>
 
       <div class="toggle">
@@ -546,13 +575,13 @@
 
       <div class="toggle">
         <span>Animate randomization</span>
-        <input type="checkbox" id="animAll">
+        <input type="checkbox" id="animAll" checked>
       </div>
 
       <div class="control">
         <span class="name">Tick interval</span>
         <span class="value" id="v-animSpeed">—</span>
-        <input type="range" id="animSpeed" min="120" max="2000" step="20" value="500">
+        <input type="range" id="animSpeed" min="120" max="2000" step="20" value="1000">
       </div>
 
       <div class="actions" style="margin-top:12px;">
@@ -670,8 +699,8 @@ const params = {
   lineBreak: 0.80,
 };
 
-let layoutSeed = 1001;
-let renderSeed = 4242;
+let layoutSeed = 1138;
+let renderSeed = 8917;
 
 let colorCells = [];
 let strokeCells = [];
@@ -680,11 +709,11 @@ let strokeCells = [];
 let renderedGeometry = { rects: [], lines: [] };
 
 // Animation
-let animateLayout = false;
-let animateColors = false;
+let animateLayout = true;
+let animateColors = true;
 let animateRatio = false;
-let animateAll = false;
-let animationSpeed = 500;
+let animateAll = true;
+let animationSpeed = 1000;
 let animationTimer = null;
 
 const LONG_SIDE = 720;          // longest dimension stays fixed
@@ -1325,13 +1354,32 @@ $('pauseAnims').addEventListener('click', () => {
 $('animSpeed').addEventListener('input', (e) => {
   animationSpeed = +e.target.value;
   $('v-animSpeed').textContent = animationSpeed + 'ms';
+  startAnimation();
+});
+
+/* ---------------- Theme (UI chrome only) ---------------- */
+const themeToggle = $('themeToggle');
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  // Label shows the *destination*, not current state.
+  themeToggle.textContent = t === 'dark' ? 'LIGHT' : 'DARK';
+}
+const stored = localStorage.getItem('blockPatternsTheme');
+applyTheme(
+  stored ||
+  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+);
+themeToggle.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  localStorage.setItem('blockPatternsTheme', next);
 });
 
 // initialize display values
 updateAll();
 updateSeedDisplay();
 $('v-animSpeed').textContent = animationSpeed + 'ms';
-
+startAnimation()
 </script>
 
 </body>
