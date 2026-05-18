@@ -2,7 +2,7 @@
 
 Snapshot of current state. Updated after meaningful changes. If this file conflicts with the code, the code wins.
 
-Last updated: 2026-05-18. **Color cluster breed built on all eleven species. Sidebar layout on all species.** Eleven species, seven breeds.
+Last updated: 2026-05-18. **Sixteen species, seven breeds.** Five new species built: star, block, basalt, pinwheel, anemone. Ring and radial skipped (redundant with disc inner radius and pinwheel respectively).
 
 Note on locations: specimen test files live under `species/`, not the repo root as some prose in README.md and CLAUDE.md still says. The discrepancy is documentation lag, not a layout decision pending. Treat `species/` as authoritative.
 
@@ -23,15 +23,15 @@ Note on locations: specimen test files live under `species/`, not the repo root 
 | blob | built | species/specimen_blob_v1.html | 2D-native | All seven breeds. Amorphous closed silhouette from noise-perturbed circle. Catmull-Rom bezier fill, dome normal model. |
 | disc | built | species/specimen_disc_v1.html | 3D primitive | SHAPE-12, 15, 67, 95. Thin extruded circle via THREE.Shape + ExtrudeGeometry. Inner radius (annulus), rotation, depth controls. Two-pass rendering (lit + object-space normals). All seven breeds wired with COVERAGE on monochrome breeds. |
 | cluster | dissolved | — | — | Dissolved as species (2026-05-18). All 17 reference shapes reclassified to existing or new species. "Cluster" is a breed (color cluster). |
-| anemone | planned | — | 2D-native | SHAPE-05, 09, 58. Identified during cluster reclassification. |
+| star | built | species/specimen_star_v1.html | 2D-native | N-pointed polygon with optional turbulent noise on boundary. Dome normal model. Seeded turbulence (value noise, cosine interpolation, periodic). All seven breeds. |
+| block | built | species/specimen_block_v1.html | 3D primitive | BoxGeometry. Two-pass rendering (lit + normals). Six-face color_blocking. All seven breeds. |
+| basalt | built | species/specimen_basalt_v1.html | 3D primitive | SHAPE-82. Grid of merged box columns with seeded random heights. Manual geometry merge (concatenated Float32Arrays). Two seeds (geom + breed). All seven breeds. |
+| pinwheel | built | species/specimen_pinwheel_v1.html | 2D-native | SHAPE-117. Hub + N curved tapered spokes (quadratic bezier). Hub inner radius for center holes. Dome normal model. Two seeds. All seven breeds. |
+| anemone | built | species/specimen_anemone_v1.html | 2D-native | SHAPE-05, 09, 58. Cluster of N organic cells (Catmull-Rom smoothed random polygons) or cubic cells (randomly rotated rectangles). Organic/cubic % distribution. Dome normal model. Two seeds. All seven breeds. |
+| ring | skipped | — | — | Redundant with disc inner radius. Disc with innerRadius > 0 produces the same silhouette; only difference would be dome vs flat normals. |
+| radial | skipped | — | — | Degenerate case of pinwheel (zero hub, zero spoke width, no curl). Pinwheel is the more useful species. |
 | agglomerate | planned | — | 2D-native | SHAPE-25, 80. Irregular clustered spheres. |
-| basalt | planned | — | unknown | SHAPE-82. Networked cubes. |
-| pinwheel | planned | — | 2D-native | SHAPE-117. Irregular spoke-and-hub. |
-| ring | planned | — | 2D-native | Annulus. Pairs with concentric. |
-| star | planned | — | 2D-native | Polygon. |
-| radial | planned | — | 2D-native | Lines from center. |
 | concentric | planned | — | 2D-native | Nested rings. |
-| block | planned | — | 3D primitive | Trivial after arch. |
 | eye | planned | — | hybrid | Lower priority. |
 
 ## Breeds
@@ -59,12 +59,12 @@ Note on locations: specimen test files live under `species/`, not the repo root 
 
 ## Now
 
-**Eleven species, seven breeds. Negative polarity on all species. Sidebar layout on all species.** Reference set review completed 2026-05-13.
+**Sixteen species, seven breeds. Negative polarity on all species. Sidebar layout on all species.** Reference set review completed 2026-05-13.
 
 Adjacent open work, ready to pick up independently:
 - ~~**Ink color parameter**~~: Done (2026-05-17). Specimen-level `inkColor: [r, g, b]` with color picker UI. All nine built species.
 - ~~**Color cluster breed**~~: Done (2026-05-18). HSL harmony palettes, shape mix, Perlin noise density, chamfer distance scatter. All eleven species.
-- **New species** from the planned list (ring, star, radial, concentric, block, anemone, agglomerate, basalt, pinwheel).
+- **New species** from the remaining planned list (concentric, agglomerate, eye).
 - **New breeds**: dot matrix (5 ref shapes), mycelium, blues.
 
 ## Soon
@@ -105,6 +105,7 @@ Adjacent open work, ready to pick up independently:
 
 ## Recent changes
 
+- 2026-05-18: FIVE NEW SPECIES built. Star (2D-native, N-pointed polygon with optional seeded turbulence noise on boundary, dome normal model). Block (3D, BoxGeometry, two-pass rendering, six-face color_blocking). Basalt (3D, SHAPE-82, grid of merged box columns with seeded random heights, manual geometry merge via concatenated Float32Arrays). Pinwheel (2D-native, SHAPE-117, hub + N curved tapered spokes via quadratic bezier, hub inner radius for center holes, dome normal model). Anemone (2D-native, SHAPE-05/09/58, cluster of N organic Catmull-Rom cells or cubic randomly-rotated rectangles, organic/cubic % distribution, dome normal model). Ring skipped (redundant with disc innerRadius). Radial skipped (degenerate case of pinwheel). All five new species have all seven breeds, two seeds (form + breed), sidebar layout, negative polarity.
 - 2026-05-18: COLOR CLUSTER breed built and propagated to all eleven species. HSL harmony palettes (6 modes: complementary, analogous, triadic, split-complementary, tetradic, monochromatic). Shape mix via population weight sliders (circle/quad/triangle percentages, mixed output when multiple nonzero). Perlin noise density modulation (noiseFreq + noiseStrength create clump/void zones). Chamfer distance field scatter (marks placed outside silhouette with quadratic falloff). Luma response for inside-silhouette density variation. 15 parameters. Key functions: `pickShape()`, `buildDistanceField()`, `drawColorClusterFromForm()`. Prototyped on torus, then propagated to all remaining species.
 - 2026-05-18: SIDEBAR LAYOUT applied to all eleven species. Two-column: 380px scrollable sidebar (left) with controls, flexible canvas area (right) with centered artwork. Controls scroll independently from artwork. Applied during color_cluster propagation.
 - 2026-05-18: FILE RENAMES. specimen_shape02_v10.html → specimen_torus_v10.html, specimen_shape02_v9.html → specimen_torus_v9.html, specimen_shape71_v3.html → specimen_arch_v3.html, specimen_shape71_v4.html → specimen_arch_v4.html. Species names now in all filenames.

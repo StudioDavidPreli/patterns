@@ -232,39 +232,112 @@ Normals use a dome model: for each silhouette pixel, compute the angle from cent
 
 **Notes:** Fourth 3D species. The disc is a thin slice of a cylinder, not a dome. The flat top and bottom faces have uniform normals (+Z and -Z in object space); the outer rim and inner rim (if annulus) have radially varying normals. This gives color_blocking clean region separation: top face, bottom face, and rim each get distinct colors. COVERAGE on monochrome breeds prevents the flat lit face from emptying out (same pattern as cylinder caps and arch faces). The inner radius parameter satisfies SHAPE-12 (disc with hole). SHAPE-12 and 15 also show negative polarity rendering (disc as cutout in dark field), which is a cross-cutting feature not yet implemented in any species.
 
-## Planned (later)
+### star
 
-These come from the original taxonomy of 12 species seen in the SHAPE source reference set. Order is rough; priorities may shift as we learn what each one teaches us.
+**Reference:** N-pointed polygon. Tests how breeds handle high-curvature silhouette boundaries.
+**Status:** built · `species/specimen_star_v1.html`
+**Type:** 2D-native (no three.js)
+**Implementation:** N-pointed star polygon rendered to offscreen canvas. Optional seeded turbulent noise displaces the boundary (value noise with cosine interpolation, periodic around the polygon). Dome normal model (same as blob): radial from centroid, z from normalized distance to 720-bin boundary distance map.
+
+**Parameters:**
+- `points` — number of star points (3 to 20, default 5)
+- `outerR` — outer radius in pixels (20 to 200, default 120)
+- `innerR` — inner radius in pixels (10 to 180, default 50)
+- `turbulence` — boundary noise amplitude (0 to 0.60, default 0)
+- `turbFreq` — noise frequency (2 to 40, default 8)
+- `turbSeed` — independent seed for noise table
+- `rotation` — degrees (-180 to 180, default 0)
+
+**Notes:** At turbulence=0, produces clean geometric star (1 subdivision = original vertices). Two seeds: turbSeed (curve shape) and seed (breed). All seven breeds wired.
+
+### block
+
+**Reference:** 3D BoxGeometry. Six clearly distinguishable faces for color_blocking.
+**Status:** built · `species/specimen_block_v1.html`
+**Type:** 3D primitive
+**Implementation:** `THREE.BoxGeometry` with `toNonIndexed()` + `computeVertexNormals()` for flat per-face normals. Two-pass rendering (lit `MeshStandardMaterial` + custom `ShaderMaterial` for object-space normals).
+
+**Parameters:**
+- `width`, `height`, `depth` — box dimensions
+- `rotation` — [x, y, z] degrees
+
+**Notes:** Fifth 3D species. Six-face color_blocking with distinct colors per face direction (top, front, right, back, left, default). All seven breeds wired with COVERAGE on monochrome breeds.
+
+### basalt
+
+**Reference:** SHAPE-82. Networked cubes.
+**Status:** built · `species/specimen_basalt_v1.html`
+**Type:** 3D primitive
+**Implementation:** Grid of `THREE.BoxGeometry` columns with seeded random heights. Individual boxes are `toNonIndexed()`, then manually merged by concatenating position/normal Float32Arrays into a single `BufferGeometry`. Two-pass rendering.
+
+**Parameters:**
+- `colsX`, `colsZ` — grid dimensions (1 to 8)
+- `colSize` — column width (0.10 to 0.60)
+- `height` — base column height (0.30 to 2.50)
+- `heightVar` — height variation (0 to 1.00)
+- `gap` — spacing between columns (0 to 0.20)
+- `rotation` — [x, y, z] degrees
+
+**Notes:** Sixth 3D species. Two seeds: geomSeed (column heights) and seed (breed). Manual geometry merge avoids BufferGeometryUtils import. Color blocking uses earthy tones. All seven breeds wired.
+
+### pinwheel
+
+**Reference:** SHAPE-117. Irregular spoke-and-hub form.
+**Status:** built · `species/specimen_pinwheel_v1.html`
+**Type:** 2D-native (no three.js)
+**Implementation:** Central hub circle + N curved tapered spokes. Each spoke follows a quadratic bezier center line (start at hub edge, control point displaced perpendicular by curl, end at hub + length). Width envelope tapers from base to tip. Spokes filled as polygons from left/right edge sample points. Hub inner radius cuts a center hole via `destination-out` compositing. Dome normal model with 720-bin boundary distance map.
+
+**Parameters:**
+- `spokes` — spoke count (2 to 12, default 6)
+- `hubR` — hub outer radius (5 to 80, default 35)
+- `hubInnerR` — hub inner radius for center hole (0 to 80, default 0)
+- `spokeLen` — base spoke length (20 to 180, default 100)
+- `spokeW` — base spoke width (3 to 50, default 18)
+- `taper` — tip taper (0 to 1, default 0.70)
+- `curl` — spoke curvature (-1 to 1, default 0.30)
+- `lenVar`, `widthVar` — seeded random variation per spoke
+- `rotation` — degrees (-180 to 180, default 0)
+
+**Notes:** Two seeds: geomSeed (spoke variations) and seed (breed). All seven breeds wired. Boundary-only outline (no face mode, 2D-native).
+
+### anemone
+
+**Reference:** SHAPE-05, 09, 58. Irregular cellular/organic marks.
+**Status:** built · `species/specimen_anemone_v1.html`
+**Type:** 2D-native (no three.js)
+**Implementation:** N cells placed within a circular spread radius using seeded random positions. Each cell is either organic (Catmull-Rom smoothed random polygon with configurable control points and irregularity) or cubic (randomly rotated rectangle with irregularity affecting aspect ratio). Cells overlap and merge to form an irregular cellular silhouette. Organic/cubic % sliders control the distribution. Dome normal model with 720-bin boundary distance map.
+
+**Parameters:**
+- `cells` — cell count (3 to 30, default 12)
+- `spread` — placement radius (20 to 200, default 100)
+- `cellSize` — base cell radius (8 to 60, default 25)
+- `sizeVar` — cell size variation (0 to 0.80, default 0.50)
+- `irregularity` — boundary wobble for organic, aspect ratio variation for cubic (0 to 1, default 0.40)
+- `cellPoints` — control points per organic cell (3 to 10, default 6)
+- `organicPct` — organic cell percentage (0 to 100, default 100)
+- `cubicPct` — cubic cell percentage (0 to 100, default 0)
+- `rotation` — degrees (-180 to 180, default 0)
+
+**Notes:** Two seeds: geomSeed (cell placement/shapes) and seed (breed). All seven breeds wired. Boundary-only outline (no face mode, 2D-native).
+
+## Skipped
 
 ### ring
-Thin annulus. 2D-native version of the torus, but without the depth. Pairs with concentric for nested variations.
+Skipped (2026-05-18). Redundant with disc species. Disc with `innerRadius > 0` already produces a ring/annulus silhouette. The only difference a 2D-native ring would offer is dome normals instead of flat-face 3D normals.
+
+### radial
+Skipped (2026-05-18). Degenerate case of pinwheel (zero hub radius, zero spoke width, no curl). Pinwheel is the more useful species with filled silhouette area for all breeds.
 
 ### ~~cluster~~ (dissolved)
 Dissolved as a species (2026-05-18). All 17 reference shapes reclassified: the underlying forms are existing species (torus, ring, block, cylinder, synapse) or new species (anemone, agglomerate, basalt, pinwheel). The mark-scattering visual is a breed concern (color cluster, dot matrix).
 
-### anemone
-**Reference:** SHAPE-05, 09, 58. Irregular cellular/organic marks. Three reference shapes share a character not yet named as a species. Identified during cluster reclassification.
+## Planned (later)
 
 ### agglomerate
 **Reference:** SHAPE-25, 80. Irregular spheres clustered together. Two reference shapes. Identified during cluster reclassification.
 
-### basalt
-**Reference:** SHAPE-82. Networked cubes. One reference shape. Identified during cluster reclassification.
-
-### pinwheel
-**Reference:** SHAPE-117. Irregular spoke-and-hub form. One reference shape. Identified during cluster reclassification.
-
-### star
-Polygon with N points. Sharp angles. Tests how breeds handle high-curvature silhouette boundaries.
-
-### radial
-Lines radiating from a center. Almost a breed dressed as a species. Useful for tests with directional content.
-
 ### concentric
 Nested rings or shapes. Combines easily with ring or disc as a layered form.
-
-### block
-3D BoxGeometry. Trivial after the arch. Mostly useful as a comparison case for color_blocking (a perfect cube has six clearly distinguishable faces).
 
 ### eye
 Hybrid. Concentric structure with a depth element. Lower priority; might be a composition of simpler species rather than its own.
