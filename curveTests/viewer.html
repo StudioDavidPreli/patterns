@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Curve Tests — Reference Comparison</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f5f3f0; font-family: 'IBM Plex Mono', monospace; padding: 24px; }
+  h1 { font-size: 14px; font-weight: 500; color: #444; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1200px; }
+  .card { background: #fff; border: 1px solid #ddd; padding: 8px; }
+  .card.reference { border-color: #c44; }
+  .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .card.reference .label { color: #c44; }
+  img { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+  <h1>Curve generation tests — 10 seeds vs reference</h1>
+  <div class="grid">
+    <div class="card reference">
+      <div class="label">REFERENCE — spline.svg</div>
+      <img src="../../reference/digitalFantasy/spline.svg" alt="reference">
+    </div>
+    <div class="card">
+      <div class="label">01 — seed 42</div>
+      <img src="curve_01.svg" alt="curve 01">
+    </div>
+    <div class="card">
+      <div class="label">02 — seed 137</div>
+      <img src="curve_02.svg" alt="curve 02">
+    </div>
+    <div class="card">
+      <div class="label">03 — seed 256</div>
+      <img src="curve_03.svg" alt="curve 03">
+    </div>
+    <div class="card">
+      <div class="label">04 — seed 512</div>
+      <img src="curve_04.svg" alt="curve 04">
+    </div>
+    <div class="card">
+      <div class="label">05 — seed 777</div>
+      <img src="curve_05.svg" alt="curve 05">
+    </div>
+    <div class="card">
+      <div class="label">06 — seed 1024</div>
+      <img src="curve_06.svg" alt="curve 06">
+    </div>
+    <div class="card">
+      <div class="label">07 — seed 1337</div>
+      <img src="curve_07.svg" alt="curve 07">
+    </div>
+    <div class="card">
+      <div class="label">08 — seed 2048</div>
+      <img src="curve_08.svg" alt="curve 08">
+    </div>
+    <div class="card">
+      <div class="label">09 — seed 3141</div>
+      <img src="curve_09.svg" alt="curve 09">
+    </div>
+    <div class="card">
+      <div class="label">10 — seed 4096</div>
+      <img src="curve_10.svg" alt="curve 10">
+    </div>
+  </div>
+</body>
+</html>

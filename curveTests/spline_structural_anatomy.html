@@ -1,0 +1,115 @@
+<style>
+.controls{display:flex;gap:12px;align-items:center;font:13px var(--font-sans);color:var(--color-text-secondary);margin-top:8px;flex-wrap:wrap}
+.controls label{display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none}
+</style>
+<h2 class="sr-only">Structural anatomy of the reference spline showing body axis and spike projections</h2>
+<svg id="viz" width="100%" viewBox="-10 -10 556 380" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<!-- Original curve -->
+<path id="curve" d="M1.17,281.89c3.61,7.94,74.51-41.53,85.51-42.53s14.18,11.08,25.7,11.08c9,0,1.06,78.42,9.3,78.42s21.8-79.73,28.8-83.73,25.25-.44,33,6.03c7.08,5.91,8.52,23.2,13.52,27.2s5.87,20.77,6.05,27.76c.3,11.22,9.96,3.02,9.75,10.63-.16,5.55-2.07,7.97,6.5,9.16,5.33.74,4.15,33.86,9.75,33.38,6.79-.59,1.39-35.27,9.75-40.76,9.45-6.2-6.34-37.14-.59-38.1,12.41-2.07,2.86-26.31,8.86-31.31,1.1-.92,16.53-3.77,20.68,1.48,14.47,18.31,25.67,64.06,32.19,63.8,7.38-.3-2.68-116.9,3.25-121.98,4.14-3.54,12.27-3.18,21.27-1.18s39.3,65.32,44.3,62.32-22.22-79.47-24.51-101.01c-2.95-27.76,5.13-41.17,29.24-19.79s46.67,79.16,54.35,77.98c5.04-.78-6.5-42.83.59-43.12,8.26-.34,105.15,30.42,106.63,25.7,1.74-5.57-90.4-37.1-91.56-41.06-2.95-10.04,7.68-25.4,2-28.08s-17,7-27,7-25.1-8.84-26.1-15.84-.97-15.01-4.73-18.31c-12.11-10.63-23.04-96.28-32.49-95.99s.98,86.15-5.02,92.15-17.45-23.38-22.45-20.38,1.1,22.17-3.54,26.58c-5.91,5.61-25.7-34.85-29.83-31.31-5.37,4.6,30.03,65.91,27.47,76.79-2.36,10.04-13.33,20.24-23.33,16.24s-59.87-97.52-65.87-94.52,40.83,103.83,42.83,112.83,7.45,44.14-1.48,48.73c-9.75,5.02-60.84-103.35-65.57-101.9s27.76,84.47,21.86,102.2c-4.11,12.33-32.26,10.05-47.26-2.95s-2.95-97.47-10.34-98.95c-11.18-2.24-23.63,87.43-32.15,96.61-6.28,6.78-19.83-1.8-24.56-13.32-6.04-14.72-17.27-188.91-26.88-187.26-7.95,1.36,11.18,156.48.74,177.36C78.26,222.96-3.26,272.14,1.17,281.89Z" fill="none" stroke="var(--color-text-primary)" stroke-width="1.5" stroke-miterlimit="10" opacity="0.9"/>
+
+<!-- Body axis (mean Y at each X bin) -->
+<path id="axis" d="M10,277 Q50,255 80,145 Q100,200 120,265 Q140,222 160,184 Q180,258 200,271 Q220,266 240,228 Q260,209 280,186 Q300,172 320,114 Q340,114 360,145 Q380,113 400,151 Q420,169 440,142 Q460,169 480,180 Q500,183 525,192" fill="none" stroke="#E24B4A" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.7"/>
+
+<!-- Spike tips - upward (above body, low Y) -->
+<g id="spikes-up">
+<circle cx="355" cy="1" r="5" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+<circle cx="294" cy="68" r="5" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+<circle cx="233" cy="67" r="5" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+<circle cx="208" cy="126" r="5" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+<circle cx="173" cy="127" r="5" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+<circle cx="89" cy="23" r="5" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+<circle cx="328" cy="73" r="4" fill="none" stroke="#378ADD" stroke-width="1"/>
+</g>
+
+<!-- Spike tips - downward (below body, high Y) -->
+<g id="spikes-dn">
+<circle cx="122" cy="329" r="5" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
+<circle cx="229" cy="359" r="5" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
+<circle cx="300" cy="314" r="5" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
+<circle cx="369" cy="254" r="5" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
+<circle cx="428" cy="211" r="5" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
+<circle cx="213" cy="317" r="4" fill="none" stroke="#EF9F27" stroke-width="1"/>
+</g>
+
+<!-- Leader lines from spike tips to body axis -->
+<g id="leaders" opacity="0.35">
+<line x1="355" y1="6" x2="355" y2="114" stroke="#378ADD" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="294" y1="73" x2="294" y2="186" stroke="#378ADD" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="233" y1="72" x2="233" y2="266" stroke="#378ADD" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="208" y1="131" x2="208" y2="271" stroke="#378ADD" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="173" y1="132" x2="173" y2="184" stroke="#378ADD" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="89" y1="28" x2="89" y2="145" stroke="#378ADD" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="122" y1="329" x2="122" y2="265" stroke="#EF9F27" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="229" y1="359" x2="229" y2="266" stroke="#EF9F27" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="300" y1="314" x2="300" y2="172" stroke="#EF9F27" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="369" y1="254" x2="369" y2="145" stroke="#EF9F27" stroke-width="0.7" stroke-dasharray="2 2"/>
+<line x1="428" y1="211" x2="428" y2="169" stroke="#EF9F27" stroke-width="0.7" stroke-dasharray="2 2"/>
+</g>
+
+<!-- Labels -->
+<text x="530" y="185" style="font:11px var(--font-sans);fill:#E24B4A" text-anchor="end">body axis</text>
+<text x="355" y="-4" style="font:10px var(--font-sans);fill:#378ADD" text-anchor="middle">113px</text>
+<text x="89" y="15" style="font:10px var(--font-sans);fill:#378ADD" text-anchor="middle">123px</text>
+<text x="233" y="58" style="font:10px var(--font-sans);fill:#378ADD" text-anchor="middle">199px</text>
+<text x="229" y="355" style="font:10px var(--font-sans);fill:#EF9F27" text-anchor="start">  94px</text>
+<text x="300" y="323" style="font:10px var(--font-sans);fill:#EF9F27" text-anchor="middle">129px</text>
+
+<!-- Anchor points -->
+<g id="anchors" opacity="0">
+<circle cx="1.2" cy="281.9" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="86.7" cy="239.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="112.4" cy="250.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="121.7" cy="328.9" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="150.5" cy="245.1" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="183.5" cy="251.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="197.0" cy="278.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="203.1" cy="306.1" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="212.8" cy="316.8" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="219.3" cy="325.9" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="229.1" cy="359.3" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="238.8" cy="318.5" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="238.2" cy="280.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="247.1" cy="249.1" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="267.8" cy="250.6" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="299.9" cy="314.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="303.2" cy="192.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="324.5" cy="191.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="368.8" cy="253.6" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="344.3" cy="152.5" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="373.5" cy="132.8" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="427.8" cy="210.7" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="428.4" cy="167.6" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="535.1" cy="193.3" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="443.5" cy="152.3" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="445.5" cy="124.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="418.5" cy="131.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="392.4" cy="115.3" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="387.7" cy="97.0" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="355.2" cy="1.0" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="350.2" cy="93.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="327.7" cy="72.8" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="324.2" cy="99.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="294.3" cy="68.1" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="321.8" cy="144.9" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="298.5" cy="161.1" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="232.6" cy="66.6" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="275.4" cy="179.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="274.0" cy="228.1" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="208.4" cy="126.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="230.3" cy="228.4" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="183.0" cy="225.5" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="172.7" cy="126.5" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="140.5" cy="223.2" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="115.9" cy="209.8" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="89.1" cy="22.6" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="89.8" cy="199.9" r="2.5" fill="var(--color-text-primary)"/>
+<circle cx="1.2" cy="281.9" r="2.5" fill="var(--color-text-primary)"/>
+</g>
+</svg>
+<div class="controls">
+<label><input type="checkbox" checked onchange="document.getElementById('axis').style.opacity=this.checked?0.7:0"> body axis</label>
+<label><input type="checkbox" checked onchange="document.getElementById('leaders').style.opacity=this.checked?0.35:0;document.getElementById('spikes-up').style.opacity=this.checked?1:0;document.getElementById('spikes-dn').style.opacity=this.checked?1:0"> spike tips</label>
+<label><input type="checkbox" onchange="document.getElementById('anchors').style.opacity=this.checked?0.6:0"> anchor points</label>
+</div>

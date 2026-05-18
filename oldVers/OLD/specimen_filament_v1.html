@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FILAMENT v1 — 2D-native curve</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper:      #e8e4dc;
+    --paper-deep: #d8d3c8;
+    --ink:        #131210;
+    --ink-soft:   #4a4640;
+    --ink-faint:  #8a857c;
+    --rule:       #131210;
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 20px;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    background-image:
+      radial-gradient(rgba(19,18,16,0.04) 1px, transparent 1px),
+      radial-gradient(rgba(19,18,16,0.025) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+  }
+
+  header { text-align: center; max-width: 580px; }
+  header .kicker {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin: 0 0 8px 0;
+  }
+  header p { margin: 0; color: var(--ink-soft); font-size: 11px; }
+
+  #sketch {
+    border: 1px solid rgba(19,18,16,0.18);
+    background: var(--paper);
+    display: inline-block;
+    line-height: 0;
+    font-size: 0;
+  }
+  #sketch canvas { display: block; }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .controls-row {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  }
+
+  button {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--paper-deep); }
+  button:active { transform: translateY(1px); }
+
+  .panel {
+    width: 560px;
+    max-width: 100%;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.18);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .panel-group h4 {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    color: var(--ink-faint);
+    margin: 0 0 10px 0;
+    font-weight: 500;
+  }
+
+  .panel-group-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 12px;
+  }
+  .panel-group-head h4 { margin: 0; }
+  .tone-meta { display: flex; align-items: center; gap: 12px; }
+  .tone-curve { flex-shrink: 0; background: rgba(19,18,16,0.04); }
+  .luma-readout {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .inline-btn {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: 1px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .inline-btn:hover { background: var(--paper-deep); }
+
+  .panel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 28px;
+  }
+
+  .panel-grid label {
+    display: grid;
+    grid-template-columns: 92px 1fr 50px;
+    gap: 10px;
+    align-items: center;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+  }
+
+  .panel-grid .name { color: var(--ink-soft); }
+  .panel-grid .val {
+    color: var(--ink);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 1px;
+    background: var(--ink);
+    outline: none;
+    margin: 0;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px; height: 11px;
+    background: var(--ink);
+    cursor: pointer;
+    border: 0;
+    border-radius: 0;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 11px; height: 11px;
+    background: var(--ink);
+    cursor: pointer;
+    border: none;
+    border-radius: 0;
+  }
+
+  .breed-selector {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 14px;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  .breed-radio {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+  }
+  .breed-radio input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 11px; height: 11px;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    margin: 0;
+    position: relative;
+    background: var(--paper);
+  }
+  .breed-radio input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 5px; height: 5px;
+    background: var(--ink);
+    border-radius: 50%;
+  }
+  .breed-radio input[type="radio"]:checked + span { color: var(--ink); }
+  .breed-params { display: none; }
+  .breed-params.active { display: grid; }
+
+  #formDebug {
+    display: none;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.18);
+    padding: 12px;
+    text-align: center;
+  }
+  #formDebug .dbg-label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    margin-top: 8px;
+  }
+  #formDebug canvas {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    background:
+      linear-gradient(45deg, #c8c2b6 25%, transparent 25%),
+      linear-gradient(-45deg, #c8c2b6 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #c8c2b6 75%),
+      linear-gradient(-45deg, transparent 75%, #c8c2b6 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  }
+
+  .specimen {
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    text-align: left;
+    white-space: pre;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.12);
+    padding: 16px 22px;
+    border-radius: 2px;
+    max-width: 560px;
+    width: 560px;
+    overflow-x: auto;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">SPECIMEN TEST · FILAMENT</div>
+  <h1>Filament &middot; v1</h1>
+  <p>First 2D-native species. Noisy curve, synthesized luma from radial cross-section. Same form/tone/breed pipeline as the 3D species; just no three.js in the form pass.</p>
+</header>
+
+<div id="sketch"></div>
+
+<div class="label">FILAMENT &mdash; v1</div>
+
+<div class="controls-row">
+  <button id="reseedCurve">NEW CURVE</button>
+  <button id="reseedBreed">NEW SEED</button>
+  <button id="toggleDebug">SHOW FORM SOURCE</button>
+  <button id="reset">RESET</button>
+  <button id="savePng">SAVE PNG</button>
+</div>
+
+<div class="panel">
+  <div class="panel-group">
+    <h4>SHAPE</h4>
+    <div class="panel-grid">
+      <label>
+        <span class="name">LENGTH</span>
+        <input type="range" id="fil-length" min="200" max="540" step="2" value="440">
+        <span class="val" id="fil-length-val">440</span>
+      </label>
+      <label>
+        <span class="name">SEGMENTS</span>
+        <input type="range" id="fil-segments" min="24" max="320" step="1" value="160">
+        <span class="val" id="fil-segments-val">160</span>
+      </label>
+      <label>
+        <span class="name">NOISE AMT</span>
+        <input type="range" id="fil-noiseAmt" min="0" max="180" step="1" value="80">
+        <span class="val" id="fil-noiseAmt-val">80</span>
+      </label>
+      <label>
+        <span class="name">NOISE SCALE</span>
+        <input type="range" id="fil-noiseScale" min="0.5" max="8" step="0.05" value="2.40">
+        <span class="val" id="fil-noiseScale-val">2.40</span>
+      </label>
+      <label>
+        <span class="name">THICKNESS</span>
+        <input type="range" id="fil-thickness" min="4" max="60" step="0.5" value="22">
+        <span class="val" id="fil-thickness-val">22.0</span>
+      </label>
+      <label>
+        <span class="name">THICK VAR</span>
+        <input type="range" id="fil-thickVar" min="0" max="0.8" step="0.01" value="0.30">
+        <span class="val" id="fil-thickVar-val">0.30</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-head">
+      <h4>TONE</h4>
+      <div class="tone-meta">
+        <svg class="tone-curve" id="tone-curve" width="48" height="24" viewBox="0 0 48 24" preserveAspectRatio="none">
+          <rect x="0.5" y="0.5" width="47" height="23" fill="none" stroke="rgba(19,18,16,0.25)" stroke-width="0.5"/>
+          <line x1="0" y1="24" x2="48" y2="0" stroke="rgba(19,18,16,0.15)" stroke-width="0.5" stroke-dasharray="1,1"/>
+          <path id="tone-curve-path" fill="none" stroke="#131210" stroke-width="1.2" d=""/>
+        </svg>
+        <span class="luma-readout" id="luma-readout">LUMA --</span>
+        <button class="inline-btn" id="auto-levels">AUTO</button>
+      </div>
+    </div>
+    <div class="panel-grid">
+      <label>
+        <span class="name">BLACK PT</span>
+        <input type="range" id="tone-black" min="0" max="0.5" step="0.005" value="0.0">
+        <span class="val" id="tone-black-val">0.000</span>
+      </label>
+      <label>
+        <span class="name">WHITE PT</span>
+        <input type="range" id="tone-white" min="0.5" max="1.0" step="0.005" value="1.0">
+        <span class="val" id="tone-white-val">1.000</span>
+      </label>
+      <label>
+        <span class="name">GAMMA</span>
+        <input type="range" id="tone-gamma" min="0.30" max="3.0" step="0.01" value="1.0">
+        <span class="val" id="tone-gamma-val">1.00</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <h4>BREED</h4>
+    <div class="breed-selector">
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="raster_vertical">
+        <span>RASTER VERTICAL</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="stipple" checked>
+        <span>STIPPLE</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="riso_noise">
+        <span>RISO NOISE</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-raster_vertical">
+      <label>
+        <span class="name">SPACING</span>
+        <input type="range" id="raster-spacing" min="0.8" max="3.0" step="0.05" value="1.6">
+        <span class="val" id="raster-spacing-val">1.60</span>
+      </label>
+      <label>
+        <span class="name">LENGTH</span>
+        <input type="range" id="raster-length" min="2" max="20" step="0.5" value="6">
+        <span class="val" id="raster-length-val">6.0</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params active" id="params-stipple">
+      <label>
+        <span class="name">DENSITY</span>
+        <input type="range" id="stipple-density" min="0.02" max="0.40" step="0.005" value="0.18">
+        <span class="val" id="stipple-density-val">0.180</span>
+      </label>
+      <label>
+        <span class="name">DOT SIZE</span>
+        <input type="range" id="stipple-dotSize" min="0.6" max="3.0" step="0.05" value="1.4">
+        <span class="val" id="stipple-dotSize-val">1.40</span>
+      </label>
+      <label>
+        <span class="name">SIZE VAR</span>
+        <input type="range" id="stipple-dotVar" min="0.0" max="0.8" step="0.02" value="0.40">
+        <span class="val" id="stipple-dotVar-val">0.40</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-riso_noise">
+      <label>
+        <span class="name">DENSITY</span>
+        <input type="range" id="riso-density" min="0.02" max="0.40" step="0.005" value="0.16">
+        <span class="val" id="riso-density-val">0.160</span>
+      </label>
+      <label>
+        <span class="name">DOT SIZE</span>
+        <input type="range" id="riso-dotSize" min="0.6" max="3.0" step="0.05" value="1.4">
+        <span class="val" id="riso-dotSize-val">1.40</span>
+      </label>
+      <label>
+        <span class="name">SIZE VAR</span>
+        <input type="range" id="riso-dotVar" min="0.0" max="0.8" step="0.02" value="0.40">
+        <span class="val" id="riso-dotVar-val">0.40</span>
+      </label>
+      <label>
+        <span class="name">MISREG</span>
+        <input type="range" id="riso-misreg" min="0" max="4" step="0.1" value="1.5">
+        <span class="val" id="riso-misreg-val">1.5</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div id="formDebug">
+  <div id="formDebugSlot"></div>
+  <div class="dbg-label">FORM SOURCE · LUMA FIELD</div>
+</div>
+
+<pre class="specimen" id="specimenView"></pre>
+
+<script>
+/* =====================================================================
+   SPECIMEN FILAMENT v1 · 2D-native curve
+   --------------------------------------------------------------------
+   Same three-stage pipeline as the 3D species (form -> tone -> breed)
+   but the form pass runs entirely in JS arrays. No three.js, no camera,
+   no light. The curve is generated as a polyline; per-pixel distance
+   to nearest curve point produces the silhouette and a synthesized
+   luma field (1 - normalizedDist^2). Existing breeds consume the same
+   typed-array contract as the 3D species.
+   ===================================================================== */
+
+const DEFAULTS = {
+  species: "filament",
+  breed:   "stipple",
+
+  geometry: {
+    type:        "filament",
+    length:      440,
+    segments:    160,
+    noiseAmount: 80,
+    noiseScale:  2.40,
+    thickness:   22.0,
+    thicknessVar: 0.30,
+    seed:        4271
+  },
+
+  tone: {
+    blackPoint: 0.0,
+    whitePoint: 1.0,
+    gamma:      1.0
+  },
+
+  breeds: {
+    raster_vertical: {
+      spacing:    1.6,
+      segmentLen: 6,
+      jitterX:    0.4,
+      weightBase: 1.0,
+      weightVar:  0.35,
+      lumaWeight: 0.40
+    },
+    stipple: {
+      density:     0.18,
+      dotSizeBase: 1.4,
+      dotSizeVar:  0.40,
+      jitter:      0.5
+    },
+    riso_noise: {
+      density:     0.16,
+      dotSizeBase: 1.4,
+      dotSizeVar:  0.40,
+      jitter:      0.5,
+      misreg:      1.5,
+      layers: [
+        { color: [20, 18, 14, 240],   offset: [0.0, 0.0],  densityMult: 1.00, lumaResponse:  0.60 },
+        { color: [232, 89, 79, 220],  offset: [1.5, -0.8], densityMult: 0.55, lumaResponse:  0.00 },
+        { color: [248, 215, 88, 220], offset: [-1.2, 1.5], densityMult: 0.40, lumaResponse: -0.30 },
+        { color: [64, 110, 178, 220], offset: [2.0, 1.2],  densityMult: 0.35, lumaResponse:  0.50 }
+      ]
+    }
+  },
+
+  paperGrain: 0.55,
+  inkAlpha:   232,
+
+  seed: 1138
+};
+
+const SPECIMEN = JSON.parse(JSON.stringify(DEFAULTS));
+
+const CANVAS_W = 560;
+const CANVAS_H = 420;
+
+/* ---------- Form pass ---------- */
+
+const _silhouette = new Uint8Array(CANVAS_W * CANVAS_H);
+const _luma = new Float32Array(CANVAS_W * CANVAS_H);
+const _bestDist = new Float32Array(CANVAS_W * CANVAS_H);
+
+const formData = {
+  silhouette: _silhouette, luma: _luma,
+  W: CANVAS_W, H: CANVAS_H,
+  lumaMin: 0, lumaMax: 1, lumaMean: 0.5
+};
+
+/* Seeded value noise. Cheap, deterministic, no p5 dependency.
+   We need this in the form pass which runs before any p5 instance. */
+function makeValueNoise(seed) {
+  const N = 2048;
+  let s = (seed >>> 0) || 1;
+  const tbl = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    tbl[i] = s / 4294967296;
+  }
+  return function(x) {
+    const i = Math.floor(x);
+    const f = x - i;
+    const a = tbl[((i % N) + N) % N];
+    const b = tbl[(((i + 1) % N) + N) % N];
+    const t = f * f * (3 - 2 * f);
+    return a * (1 - t) + b * t;
+  };
+}
+
+function generateCurvePoints(geom) {
+  const noiseY = makeValueNoise(geom.seed);
+  const noiseT = makeValueNoise(geom.seed ^ 0x9E3779B9);
+
+  const cx = CANVAS_W * 0.5;
+  const cy = CANVAS_H * 0.5;
+  const N = Math.max(2, Math.floor(geom.segments));
+
+  const pts = new Array(N + 1);
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const x = cx + (u - 0.5) * geom.length;
+    const yOff = (noiseY(u * geom.noiseScale) - 0.5) * 2 * geom.noiseAmount;
+    const y = cy + yOff;
+    const tFactor = 1 + (noiseT(u * geom.noiseScale * 0.6 + 17) - 0.5) * 2 * geom.thicknessVar;
+    const halfThick = Math.max(0.5, 0.5 * geom.thickness * tFactor);
+    pts[i] = { x, y, halfThick };
+  }
+  return pts;
+}
+
+function renderFormPass() {
+  const W = CANVAS_W, H = CANVAS_H;
+  _silhouette.fill(0);
+  _luma.fill(0);
+  for (let i = 0; i < W * H; i++) _bestDist[i] = Infinity;
+
+  const pts = generateCurvePoints(SPECIMEN.geometry);
+
+  /* For each curve point, mark all pixels within its half-thickness
+     and record the smallest normalized distance found so far. */
+  for (let p = 0; p < pts.length; p++) {
+    const pt = pts[p];
+    const t = pt.halfThick;
+    const xMin = Math.max(0, Math.floor(pt.x - t));
+    const xMax = Math.min(W - 1, Math.ceil(pt.x + t));
+    const yMin = Math.max(0, Math.floor(pt.y - t));
+    const yMax = Math.min(H - 1, Math.ceil(pt.y + t));
+    if (xMin > xMax || yMin > yMax) continue;
+
+    const tInv = 1 / t;
+    for (let y = yMin; y <= yMax; y++) {
+      const rowBase = y * W;
+      for (let x = xMin; x <= xMax; x++) {
+        const dx = x - pt.x;
+        const dy = y - pt.y;
+        const d = Math.sqrt(dx * dx + dy * dy) * tInv;
+        if (d < 1) {
+          const idx = rowBase + x;
+          if (d < _bestDist[idx]) {
+            _bestDist[idx] = d;
+            _silhouette[idx] = 1;
+            _luma[idx] = 1 - d * d;
+          }
+        }
+      }
+    }
+  }
+
+  /* Connect adjacent curve points with a swept band so gaps between
+     point stamps don't leave holes in the silhouette. We interpolate
+     extra sample points proportional to the spacing. */
+  for (let p = 0; p < pts.length - 1; p++) {
+    const a = pts[p], b = pts[p + 1];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const seg = Math.sqrt(dx * dx + dy * dy);
+    const minThick = Math.min(a.halfThick, b.halfThick);
+    if (seg <= minThick * 0.6) continue;
+    const extra = Math.ceil(seg / Math.max(1, minThick * 0.5));
+    for (let k = 1; k < extra; k++) {
+      const u = k / extra;
+      const sx = a.x + dx * u;
+      const sy = a.y + dy * u;
+      const sHalf = a.halfThick * (1 - u) + b.halfThick * u;
+      stampPointSimple(sx, sy, sHalf);
+    }
+  }
+
+  let minL = 1, maxL = 0, sumL = 0, count = 0;
+  for (let i = 0; i < W * H; i++) {
+    if (_silhouette[i]) {
+      const l = _luma[i];
+      if (l < minL) minL = l;
+      if (l > maxL) maxL = l;
+      sumL += l;
+      count++;
+    }
+  }
+  formData.lumaMin  = count ? minL : 0;
+  formData.lumaMax  = count ? maxL : 0;
+  formData.lumaMean = count ? sumL / count : 0;
+}
+
+function stampPointSimple(px, py, t) {
+  const W = CANVAS_W, H = CANVAS_H;
+  const xMin = Math.max(0, Math.floor(px - t));
+  const xMax = Math.min(W - 1, Math.ceil(px + t));
+  const yMin = Math.max(0, Math.floor(py - t));
+  const yMax = Math.min(H - 1, Math.ceil(py + t));
+  if (xMin > xMax || yMin > yMax) return;
+  const tInv = 1 / t;
+  for (let y = yMin; y <= yMax; y++) {
+    const rowBase = y * W;
+    for (let x = xMin; x <= xMax; x++) {
+      const dx = x - px;
+      const dy = y - py;
+      const d = Math.sqrt(dx * dx + dy * dy) * tInv;
+      if (d < 1) {
+        const idx = rowBase + x;
+        if (d < _bestDist[idx]) {
+          _bestDist[idx] = d;
+          _silhouette[idx] = 1;
+          _luma[idx] = 1 - d * d;
+        }
+      }
+    }
+  }
+}
+
+/* ---------- Tone pass ---------- */
+
+function applyTone(rawLuma, tone) {
+  const range = tone.whitePoint - tone.blackPoint;
+  if (range <= 0) return 0;
+  let l = (rawLuma - tone.blackPoint) / range;
+  if (l < 0) l = 0;
+  else if (l > 1) l = 1;
+  return Math.pow(l, tone.gamma);
+}
+
+/* ---------- Breed pass ---------- */
+
+let myP5;
+let currentSeed = SPECIMEN.seed;
+
+const sketch = (p) => {
+  let pPaper = null;
+
+  p.setup = function() {
+    const c = p.createCanvas(CANVAS_W, CANVAS_H);
+    c.parent('sketch');
+    p.noLoop();
+    pPaper = buildPaperTexture(p);
+    renderSpecimen(p, pPaper);
+  };
+
+  p.regenerate = function(newSeed) {
+    if (newSeed !== undefined) currentSeed = newSeed;
+    renderSpecimen(p, pPaper);
+  };
+
+  p.savePng = function() {
+    p.saveCanvas(`filament-${SPECIMEN.breed}-v1`, 'png');
+  };
+};
+
+function renderSpecimen(p, paper) {
+  p.randomSeed(currentSeed);
+  p.noiseSeed(currentSeed);
+  drawPaper(p, paper);
+  drawBreedFromForm(p, SPECIMEN, formData);
+  drawGrainOverlay(p);
+  drawFrameEdge(p);
+}
+
+function buildPaperTexture(p) {
+  const buf = p.createGraphics(CANVAS_W, CANVAS_H);
+  buf.pixelDensity(1);
+  buf.noiseSeed(1234);
+  buf.loadPixels();
+  for (let y = 0; y < buf.height; y++) {
+    for (let x = 0; x < buf.width; x++) {
+      const n = buf.noise(x * 0.04, y * 0.04);
+      const v = 232 + (n - 0.5) * 18;
+      const i = 4 * (y * buf.width + x);
+      buf.pixels[i]     = v;
+      buf.pixels[i + 1] = v - 4;
+      buf.pixels[i + 2] = v - 12;
+      buf.pixels[i + 3] = 255;
+    }
+  }
+  buf.updatePixels();
+  return buf;
+}
+
+function drawPaper(p, paper) {
+  p.image(paper, 0, 0);
+  p.noStroke();
+  for (let i = 0; i < 220; i++) {
+    p.fill(40, 36, 30, p.random(8, 22));
+    p.rect(p.random(p.width), p.random(p.height), p.random(1, 1.6), p.random(1, 1.6));
+  }
+}
+
+function drawBreedFromForm(p, s, form) {
+  const params = s.breeds[s.breed];
+  if      (s.breed === "raster_vertical") drawRasterFromForm(p, s, params, form);
+  else if (s.breed === "stipple")         drawStippleFromForm(p, s, params, form);
+  else if (s.breed === "riso_noise")      drawRisoNoiseFromForm(p, s, params, form);
+}
+
+/* Breeds are copied verbatim from specimen_shape02_v9.html. They consume
+   the typed-array contract; nothing here is torus-specific. If these ever
+   diverge from the v9 versions, that is a pipeline bug. */
+
+function drawRasterFromForm(p, s, sp, form) {
+  const { silhouette, W: fW, H: fH } = form;
+  p.stroke(14, 13, 11, s.inkAlpha);
+
+  for (let cx = 0; cx < p.width; cx += sp.spacing) {
+    const fx = Math.floor(cx);
+    if (fx < 0 || fx >= fW) continue;
+    let runStart = -1;
+    for (let fy = 0; fy <= fH; fy++) {
+      const inForm = fy < fH ? silhouette[fy * fW + fx] === 1 : false;
+      if (inForm && runStart < 0) {
+        runStart = fy;
+      } else if (!inForm && runStart >= 0) {
+        drawRasterColumnRun(p, s, sp, fx, runStart, fy - 1, form, cx);
+        runStart = -1;
+      }
+    }
+  }
+}
+
+function drawRasterColumnRun(p, s, sp, fx, fyStart, fyEnd, form, cxBase) {
+  const tone = s.tone;
+  const segLen = sp.segmentLen;
+  const jitterRange = Math.max(1.5, segLen * 0.25);
+  const jx = p.random(-sp.jitterX, sp.jitterX);
+
+  let fy = fyStart;
+  while (fy < fyEnd) {
+    const fySegEnd = Math.min(fy + segLen + p.random(-jitterRange, jitterRange), fyEnd);
+    const fyMid = Math.floor((fy + fySegEnd) / 2);
+    const lIdx = fyMid * form.W + fx;
+    const l = applyTone(form.luma[lIdx], tone);
+
+    const dropP = l;
+
+    if (p.random() > dropP) {
+      const baseW = sp.weightBase * (1 + p.random(-sp.weightVar, sp.weightVar));
+      const lumaWeightMult = 1.15 - l * sp.lumaWeight;
+      p.strokeWeight(Math.max(0.4, baseW * lumaWeightMult));
+
+      const cy1 = fy + p.random(-0.3, 0.3);
+      const cy2 = fySegEnd + p.random(-0.3, 0.3);
+      const cxJ1 = cxBase + jx + p.random(-0.25, 0.25);
+      const cxJ2 = cxBase + jx + p.random(-0.25, 0.25);
+      p.line(cxJ1, cy1, cxJ2, cy2);
+    }
+    fy = fySegEnd + p.random(0, Math.max(0.4, segLen * 0.1));
+  }
+}
+
+function drawStippleFromForm(p, s, sp, form) {
+  const { silhouette, luma, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+
+  for (let y = 0; y < fH; y++) {
+    for (let x = 0; x < fW; x++) {
+      const idx = y * fW + x;
+      if (silhouette[idx] !== 1) continue;
+
+      const l = applyTone(luma[idx], tone);
+      const localDensity = sp.density * (1 - l);
+
+      if (p.random() > localDensity) continue;
+
+      const jx = p.random(-sp.jitter, sp.jitter);
+      const jy = p.random(-sp.jitter, sp.jitter);
+      const dotSize = sp.dotSizeBase * (1 + p.random(-sp.dotSizeVar, sp.dotSizeVar));
+
+      const alpha = s.inkAlpha * (1 - l * 0.18);
+      p.fill(14, 13, 11, alpha);
+
+      p.circle(x + jx, y + jy, Math.max(0.4, dotSize));
+    }
+  }
+}
+
+function drawRisoNoiseFromForm(p, s, sp, form) {
+  const { silhouette, luma, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+
+  for (const layer of sp.layers) {
+    p.fill(layer.color[0], layer.color[1], layer.color[2], layer.color[3]);
+    const offX = layer.offset[0] * sp.misreg;
+    const offY = layer.offset[1] * sp.misreg;
+
+    for (let y = 0; y < fH; y++) {
+      for (let x = 0; x < fW; x++) {
+        const idx = y * fW + x;
+        if (silhouette[idx] !== 1) continue;
+
+        const l = applyTone(luma[idx], tone);
+
+        let layerDensity = sp.density * layer.densityMult * (1 - l * layer.lumaResponse);
+        if (layerDensity <= 0) continue;
+        if (layerDensity > 1)  layerDensity = 1;
+
+        if (p.random() > layerDensity) continue;
+
+        const jx = p.random(-sp.jitter, sp.jitter) + offX;
+        const jy = p.random(-sp.jitter, sp.jitter) + offY;
+        const dotSize = sp.dotSizeBase * (1 + p.random(-sp.dotSizeVar, sp.dotSizeVar));
+
+        p.circle(x + jx, y + jy, Math.max(0.4, dotSize));
+      }
+    }
+  }
+}
+
+/* ---------- Texture overlays ---------- */
+
+function drawGrainOverlay(p) {
+  p.noStroke();
+  for (let i = 0; i < 850; i++) {
+    p.fill(20, 18, 14, p.random(6, 16));
+    p.rect(p.random(p.width), p.random(p.height), 1, 1);
+  }
+  for (let i = 0; i < 320; i++) {
+    p.fill(248, 244, 236, p.random(18, 46));
+    p.rect(p.random(p.width), p.random(p.height), 1, 1);
+  }
+}
+
+function drawFrameEdge(p) {
+  p.noFill();
+  p.stroke(20, 18, 14, 22);
+  p.strokeWeight(1);
+  p.rect(0.5, 0.5, p.width - 1, p.height - 1);
+}
+
+/* ---------- Update orchestration ---------- */
+
+let _formScheduled = false;
+let _breedScheduled = false;
+
+function scheduleFormUpdate() {
+  if (_formScheduled) return;
+  _formScheduled = true;
+  requestAnimationFrame(() => {
+    _formScheduled = false;
+    renderFormPass();
+    updateDebugCanvas();
+    updateLumaReadout();
+    scheduleBreedUpdate();
+    updateSpecimenView();
+  });
+}
+
+function scheduleBreedUpdate() {
+  if (_breedScheduled) return;
+  _breedScheduled = true;
+  requestAnimationFrame(() => {
+    _breedScheduled = false;
+    if (myP5) myP5.regenerate();
+    updateToneCurve();
+    updateSpecimenView();
+  });
+}
+
+/* The debug view shows the synthesized luma field directly. For 3D species
+   this slot shows the three.js render; here we paint luma into a canvas
+   so the user can see what breeds are responding to. */
+function updateDebugCanvas() {
+  const slot = document.getElementById('formDebugSlot');
+  let disp = slot.querySelector('canvas');
+  if (!disp) {
+    disp = document.createElement('canvas');
+    disp.width = CANVAS_W;
+    disp.height = CANVAS_H;
+    slot.appendChild(disp);
+  }
+  const ctx = disp.getContext('2d');
+  const img = ctx.createImageData(CANVAS_W, CANVAS_H);
+  for (let i = 0; i < CANVAS_W * CANVAS_H; i++) {
+    if (_silhouette[i]) {
+      const v = Math.round(_luma[i] * 255);
+      img.data[i * 4]     = v;
+      img.data[i * 4 + 1] = v;
+      img.data[i * 4 + 2] = v;
+      img.data[i * 4 + 3] = 255;
+    } else {
+      img.data[i * 4 + 3] = 0;
+    }
+  }
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.putImageData(img, 0, 0);
+}
+
+function updateLumaReadout() {
+  const r = document.getElementById('luma-readout');
+  r.textContent = `LUMA ${formData.lumaMin.toFixed(2)} · ${formData.lumaMean.toFixed(2)} · ${formData.lumaMax.toFixed(2)}`;
+}
+
+function updateToneCurve() {
+  const path = document.getElementById('tone-curve-path');
+  if (!path) return;
+  const W = 48, H = 24, N = 32;
+  let d = '';
+  for (let i = 0; i <= N; i++) {
+    const x = i / N;
+    const y = applyTone(x, SPECIMEN.tone);
+    d += (i === 0 ? 'M' : 'L') + (x * W).toFixed(2) + ',' + (H - y * H).toFixed(2) + ' ';
+  }
+  path.setAttribute('d', d.trim());
+}
+
+function updateSpecimenView() {
+  const view = {
+    species:  SPECIMEN.species,
+    breed:    SPECIMEN.breed,
+    geometry: SPECIMEN.geometry,
+    tone:     SPECIMEN.tone,
+    breeds: { [SPECIMEN.breed]: SPECIMEN.breeds[SPECIMEN.breed] },
+    paperGrain: SPECIMEN.paperGrain,
+    inkAlpha:   SPECIMEN.inkAlpha,
+    seed:       SPECIMEN.seed
+  };
+  document.getElementById('specimenView').textContent = JSON.stringify(view, null, 2);
+}
+
+/* ---------- Boot ---------- */
+
+renderFormPass();
+myP5 = new p5(sketch);
+updateDebugCanvas();
+updateLumaReadout();
+updateToneCurve();
+updateSpecimenView();
+
+/* ---------- Slider wiring ---------- */
+
+function bindSlider(id, valId, fmt, mutate, kind) {
+  const slider = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    mutate(v);
+    valEl.textContent = fmt(v);
+    if (kind === 'form') scheduleFormUpdate();
+    else                 scheduleBreedUpdate();
+  });
+}
+
+const fmt0  = v => v.toFixed(0);
+const fmt1  = v => v.toFixed(1);
+const fmt2  = v => v.toFixed(2);
+const fmt3  = v => v.toFixed(3);
+
+// SHAPE
+bindSlider('fil-length',     'fil-length-val',     fmt0, v => SPECIMEN.geometry.length      = v, 'form');
+bindSlider('fil-segments',   'fil-segments-val',   fmt0, v => SPECIMEN.geometry.segments    = v, 'form');
+bindSlider('fil-noiseAmt',   'fil-noiseAmt-val',   fmt0, v => SPECIMEN.geometry.noiseAmount = v, 'form');
+bindSlider('fil-noiseScale', 'fil-noiseScale-val', fmt2, v => SPECIMEN.geometry.noiseScale  = v, 'form');
+bindSlider('fil-thickness',  'fil-thickness-val',  fmt1, v => SPECIMEN.geometry.thickness   = v, 'form');
+bindSlider('fil-thickVar',   'fil-thickVar-val',   fmt2, v => SPECIMEN.geometry.thicknessVar = v, 'form');
+
+// TONE
+bindSlider('tone-black', 'tone-black-val', fmt3, v => SPECIMEN.tone.blackPoint = v, 'breed');
+bindSlider('tone-white', 'tone-white-val', fmt3, v => SPECIMEN.tone.whitePoint = v, 'breed');
+bindSlider('tone-gamma', 'tone-gamma-val', fmt2, v => SPECIMEN.tone.gamma      = v, 'breed');
+
+// BREED · raster_vertical
+bindSlider('raster-spacing', 'raster-spacing-val', fmt2,
+  v => SPECIMEN.breeds.raster_vertical.spacing = v, 'breed');
+bindSlider('raster-length',  'raster-length-val', fmt1,
+  v => SPECIMEN.breeds.raster_vertical.segmentLen = v, 'breed');
+
+// BREED · stipple
+bindSlider('stipple-density', 'stipple-density-val', fmt3,
+  v => SPECIMEN.breeds.stipple.density = v, 'breed');
+bindSlider('stipple-dotSize', 'stipple-dotSize-val', fmt2,
+  v => SPECIMEN.breeds.stipple.dotSizeBase = v, 'breed');
+bindSlider('stipple-dotVar',  'stipple-dotVar-val',  fmt2,
+  v => SPECIMEN.breeds.stipple.dotSizeVar = v, 'breed');
+
+// BREED · riso_noise
+bindSlider('riso-density', 'riso-density-val', fmt3,
+  v => SPECIMEN.breeds.riso_noise.density = v, 'breed');
+bindSlider('riso-dotSize', 'riso-dotSize-val', fmt2,
+  v => SPECIMEN.breeds.riso_noise.dotSizeBase = v, 'breed');
+bindSlider('riso-dotVar',  'riso-dotVar-val',  fmt2,
+  v => SPECIMEN.breeds.riso_noise.dotSizeVar = v, 'breed');
+bindSlider('riso-misreg',  'riso-misreg-val',  fmt1,
+  v => SPECIMEN.breeds.riso_noise.misreg = v, 'breed');
+
+/* ---------- Breed selector ---------- */
+
+function setBreed(breedName) {
+  SPECIMEN.breed = breedName;
+  document.querySelectorAll('input[name="breed"]').forEach(r => {
+    r.checked = r.value === breedName;
+  });
+  document.querySelectorAll('.breed-params').forEach(el => {
+    el.classList.toggle('active', el.id === `params-${breedName}`);
+  });
+  scheduleBreedUpdate();
+}
+
+document.querySelectorAll('input[name="breed"]').forEach(r => {
+  r.addEventListener('change', () => setBreed(r.value));
+});
+
+/* ---------- Buttons ---------- */
+
+document.getElementById('reseedCurve').addEventListener('click', () => {
+  SPECIMEN.geometry.seed = Math.floor(Math.random() * 100000);
+  scheduleFormUpdate();
+});
+
+document.getElementById('reseedBreed').addEventListener('click', () => {
+  currentSeed = Math.floor(Math.random() * 100000);
+  SPECIMEN.seed = currentSeed;
+  scheduleBreedUpdate();
+});
+
+document.getElementById('savePng').addEventListener('click', () => {
+  myP5.savePng();
+});
+
+document.getElementById('toggleDebug').addEventListener('click', (e) => {
+  const dbg = document.getElementById('formDebug');
+  if (dbg.style.display === 'none' || !dbg.style.display) {
+    dbg.style.display = 'block';
+    e.target.textContent = 'HIDE FORM SOURCE';
+  } else {
+    dbg.style.display = 'none';
+    e.target.textContent = 'SHOW FORM SOURCE';
+  }
+});
+
+document.getElementById('auto-levels').addEventListener('click', () => {
+  const pad = 0.005;
+  const newBlack = Math.max(0, formData.lumaMin - pad);
+  const newWhite = Math.min(1, formData.lumaMax + pad);
+  SPECIMEN.tone.blackPoint = newBlack;
+  SPECIMEN.tone.whitePoint = newWhite;
+
+  document.getElementById('tone-black').value = newBlack;
+  document.getElementById('tone-black-val').textContent = fmt3(newBlack);
+  document.getElementById('tone-white').value = newWhite;
+  document.getElementById('tone-white-val').textContent = fmt3(newWhite);
+
+  scheduleBreedUpdate();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  Object.assign(SPECIMEN.geometry, DEFAULTS.geometry);
+  Object.assign(SPECIMEN.tone,     DEFAULTS.tone);
+  Object.assign(SPECIMEN.breeds.raster_vertical, DEFAULTS.breeds.raster_vertical);
+  Object.assign(SPECIMEN.breeds.stipple,         DEFAULTS.breeds.stipple);
+  SPECIMEN.breeds.riso_noise.density     = DEFAULTS.breeds.riso_noise.density;
+  SPECIMEN.breeds.riso_noise.dotSizeBase = DEFAULTS.breeds.riso_noise.dotSizeBase;
+  SPECIMEN.breeds.riso_noise.dotSizeVar  = DEFAULTS.breeds.riso_noise.dotSizeVar;
+  SPECIMEN.breeds.riso_noise.jitter      = DEFAULTS.breeds.riso_noise.jitter;
+  SPECIMEN.breeds.riso_noise.misreg      = DEFAULTS.breeds.riso_noise.misreg;
+  SPECIMEN.breed = DEFAULTS.breed;
+
+  const set = (id, valId, value, fmt) => {
+    document.getElementById(id).value = value;
+    document.getElementById(valId).textContent = fmt(value);
+  };
+  set('fil-length',     'fil-length-val',     DEFAULTS.geometry.length,      fmt0);
+  set('fil-segments',   'fil-segments-val',   DEFAULTS.geometry.segments,    fmt0);
+  set('fil-noiseAmt',   'fil-noiseAmt-val',   DEFAULTS.geometry.noiseAmount, fmt0);
+  set('fil-noiseScale', 'fil-noiseScale-val', DEFAULTS.geometry.noiseScale,  fmt2);
+  set('fil-thickness',  'fil-thickness-val',  DEFAULTS.geometry.thickness,   fmt1);
+  set('fil-thickVar',   'fil-thickVar-val',   DEFAULTS.geometry.thicknessVar, fmt2);
+  set('tone-black',     'tone-black-val',     DEFAULTS.tone.blackPoint,      fmt3);
+  set('tone-white',     'tone-white-val',     DEFAULTS.tone.whitePoint,      fmt3);
+  set('tone-gamma',     'tone-gamma-val',     DEFAULTS.tone.gamma,           fmt2);
+  set('raster-spacing', 'raster-spacing-val', DEFAULTS.breeds.raster_vertical.spacing,    fmt2);
+  set('raster-length',  'raster-length-val',  DEFAULTS.breeds.raster_vertical.segmentLen, fmt1);
+  set('stipple-density','stipple-density-val',DEFAULTS.breeds.stipple.density,            fmt3);
+  set('stipple-dotSize','stipple-dotSize-val',DEFAULTS.breeds.stipple.dotSizeBase,        fmt2);
+  set('stipple-dotVar', 'stipple-dotVar-val', DEFAULTS.breeds.stipple.dotSizeVar,         fmt2);
+  set('riso-density',   'riso-density-val',   DEFAULTS.breeds.riso_noise.density,         fmt3);
+  set('riso-dotSize',   'riso-dotSize-val',   DEFAULTS.breeds.riso_noise.dotSizeBase,     fmt2);
+  set('riso-dotVar',    'riso-dotVar-val',    DEFAULTS.breeds.riso_noise.dotSizeVar,      fmt2);
+  set('riso-misreg',    'riso-misreg-val',    DEFAULTS.breeds.riso_noise.misreg,          fmt1);
+
+  setBreed(DEFAULTS.breed);
+  scheduleFormUpdate();
+});
+</script>
+
+</body>
+</html>

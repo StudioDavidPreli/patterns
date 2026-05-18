@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHAPE-02 — Ring × Raster Vertical</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:      #e8e4dc;
+    --paper-deep: #d8d3c8;
+    --ink:        #131210;
+    --ink-soft:   #4a4640;
+    --ink-faint:  #8a857c;
+    --rule:       #131210;
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 48px 20px;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    background-image:
+      radial-gradient(rgba(19,18,16,0.04) 1px, transparent 1px),
+      radial-gradient(rgba(19,18,16,0.025) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+  }
+
+  header {
+    text-align: center;
+    max-width: 580px;
+  }
+
+  header .kicker {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin: 0 0 8px 0;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 11px;
+  }
+
+  #sketch {
+    border: 1px solid rgba(19,18,16,0.18);
+    background: var(--paper);
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .specimen {
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    text-align: left;
+    white-space: pre;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.12);
+    padding: 16px 22px;
+    border-radius: 2px;
+    max-width: 560px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  button:hover { background: var(--paper-deep); }
+  button:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">SPECIMEN TEST · 01</div>
+  <h1>Ring &times; Raster Vertical</h1>
+  <p>Reconstructed from SHAPE-02. Two concentric ellipses, vertical raster fill in the annulus.</p>
+</header>
+
+<div class="canvas-wrap">
+  <div id="sketch"></div>
+</div>
+
+<div class="label">SHAPE &mdash; 02</div>
+
+<div class="controls">
+  <button id="reseed">NEW SEED</button>
+  <button id="savePng">SAVE PNG</button>
+</div>
+
+<pre class="specimen" id="specimenView"></pre>
+
+<script>
+/* =====================================================================
+   SPECIMEN SHAPE-02 · Ring × Raster Vertical
+   Test reconstruction for the Proterozoic shape generator.
+   ===================================================================== */
+
+const SPECIMEN = {
+  species:        "ring",
+  breed:          "raster_vertical",
+  // Geometry
+  aspect:         1.42,    // outer & inner share this aspect (w/h)
+  outerScale:     0.86,    // fraction of half-min-dimension
+  innerScale:     0.55,
+  innerOffsetY:   -0.005,  // tiny upward shift sells the 3D read
+  // Render
+  spacing:        1.8,     // px between columns
+  jitterX:        0.5,
+  segmentLen:     7,
+  weightBase:     1.05,
+  weightVar:      0.35,
+  breakProb:      0.04,    // base; rises near outer x bounds
+  edgeFalloff:    0.70,    // additional drop probability multiplier near outer edges
+  // Texture
+  paperGrain:     0.55,
+  inkAlpha:       232,
+  // Reproducibility
+  seed:           1138
+};
+
+const CANVAS_W = 560;
+const CANVAS_H = 420;
+
+let myP5;
+let currentSeed = SPECIMEN.seed;
+
+const sketch = (p) => {
+  let pPaper = null;
+
+  p.setup = function() {
+    const c = p.createCanvas(CANVAS_W, CANVAS_H);
+    c.parent('sketch');
+    p.noLoop();
+    pPaper = buildPaperTexture(p);
+    renderSpecimen(p, pPaper);
+  };
+
+  p.regenerate = function(newSeed) {
+    currentSeed = newSeed;
+    renderSpecimen(p, pPaper);
+  };
+
+  p.savePng = function() {
+    p.saveCanvas('shape-02', 'png');
+  };
+};
+
+function renderSpecimen(p, paper) {
+  p.randomSeed(currentSeed);
+  p.noiseSeed(currentSeed);
+  drawPaper(p, paper);
+  drawRingRaster(p, SPECIMEN);
+  drawGrainOverlay(p);
+  drawFrameEdge(p);
+}
+
+/* ---------- Paper ---------- */
+
+function buildPaperTexture(p) {
+  const buf = p.createGraphics(CANVAS_W, CANVAS_H);
+  buf.noiseSeed(1234);
+  buf.loadPixels();
+  for (let y = 0; y < buf.height; y++) {
+    for (let x = 0; x < buf.width; x++) {
+      const n = buf.noise(x * 0.04, y * 0.04);
+      const v = 232 + (n - 0.5) * 18;
+      const i = 4 * (y * buf.width + x);
+      buf.pixels[i]     = v;
+      buf.pixels[i + 1] = v - 4;
+      buf.pixels[i + 2] = v - 12;
+      buf.pixels[i + 3] = 255;
+    }
+  }
+  buf.updatePixels();
+  return buf;
+}
+
+function drawPaper(p, paper) {
+  p.image(paper, 0, 0);
+  // Sparse fiber specks redrawn each render
+  p.noStroke();
+  for (let i = 0; i < 220; i++) {
+    p.fill(40, 36, 30, p.random(8, 22));
+    p.rect(p.random(p.width), p.random(p.height), p.random(1, 1.6), p.random(1, 1.6));
+  }
+}
+
+/* ---------- Specimen ---------- */
+
+function drawRingRaster(p, s) {
+  const cx = p.width / 2;
+  const cy = p.height / 2;
+
+  const baseR = Math.min(p.width, p.height) * 0.5;
+  const aspectRoot = Math.sqrt(s.aspect);
+  const outerRX = baseR * s.outerScale * aspectRoot;
+  const outerRY = baseR * s.outerScale / aspectRoot;
+  const innerRX = baseR * s.innerScale * aspectRoot;
+  const innerRY = baseR * s.innerScale / aspectRoot;
+  const innerCY = cy + s.innerOffsetY * p.height;
+
+  p.stroke(14, 13, 11, s.inkAlpha);
+
+  for (let x = cx - outerRX; x <= cx + outerRX; x += s.spacing) {
+    const dx = x - cx;
+
+    const outerTermSq = 1 - (dx * dx) / (outerRX * outerRX);
+    if (outerTermSq <= 0) continue;
+    const outerDy = outerRY * Math.sqrt(outerTermSq);
+
+    const innerTermSq = 1 - (dx * dx) / (innerRX * innerRX);
+
+    const jx = p.random(-s.jitterX, s.jitterX);
+    const sw = Math.max(0.4, s.weightBase * (1 + p.random(-s.weightVar, s.weightVar)));
+    p.strokeWeight(sw);
+
+    // Edge proximity 0 at center, 1 at outer x bounds. Higher edge proximity
+    // raises drop probability and shaves a fraction off the line so the
+    // outer boundary feels halftone-soft rather than hard-clipped.
+    const edgeProx = Math.abs(dx) / outerRX;
+    const dropP = s.breakProb + edgeProx * edgeProx * s.edgeFalloff * 0.18;
+
+    if (innerTermSq <= 0) {
+      drawJitteredColumn(p, x + jx, cy - outerDy, cy + outerDy, dropP, s.segmentLen);
+    } else {
+      const innerDy = innerRY * Math.sqrt(innerTermSq);
+      const yTopOuter = cy - outerDy;
+      const yTopInner = innerCY - innerDy;
+      const yBotInner = innerCY + innerDy;
+      const yBotOuter = cy + outerDy;
+
+      if (yTopInner > yTopOuter) {
+        drawJitteredColumn(p, x + jx, yTopOuter, yTopInner, dropP, s.segmentLen);
+      }
+      if (yBotOuter > yBotInner) {
+        drawJitteredColumn(p, x + jx, yBotInner, yBotOuter, dropP, s.segmentLen);
+      }
+    }
+  }
+}
+
+function drawJitteredColumn(p, x, y1, y2, breakProb, segLen) {
+  // Subdivide into short segments with occasional gaps and small x-jitter
+  // per segment. The jitter keeps the rasters from reading as a single
+  // mechanical screen.
+  let y = y1;
+  while (y < y2) {
+    const segHere = segLen + p.random(-1.5, 1.5);
+    const yEnd = Math.min(y + segHere, y2);
+    if (p.random() > breakProb) {
+      const x1 = x + p.random(-0.35, 0.35);
+      const x2 = x + p.random(-0.35, 0.35);
+      p.line(x1, y, x2, yEnd);
+    }
+    y = yEnd + p.random(0, 0.5);
+  }
+}
+
+/* ---------- Grain ---------- */
+
+function drawGrainOverlay(p) {
+  p.noStroke();
+  for (let i = 0; i < 850; i++) {
+    p.fill(20, 18, 14, p.random(6, 16));
+    p.rect(p.random(p.width), p.random(p.height), 1, 1);
+  }
+  for (let i = 0; i < 320; i++) {
+    p.fill(248, 244, 236, p.random(18, 46));
+    p.rect(p.random(p.width), p.random(p.height), 1, 1);
+  }
+}
+
+function drawFrameEdge(p) {
+  p.noFill();
+  p.stroke(20, 18, 14, 22);
+  p.strokeWeight(1);
+  p.rect(0.5, 0.5, p.width - 1, p.height - 1);
+}
+
+/* ---------- UI ---------- */
+
+myP5 = new p5(sketch);
+
+document.getElementById('specimenView').textContent =
+  '{\n' +
+  Object.entries(SPECIMEN)
+    .map(([k, v]) => `  ${k.padEnd(14)} ${JSON.stringify(v)}`)
+    .join(',\n') +
+  '\n}';
+
+document.getElementById('reseed').addEventListener('click', () => {
+  myP5.regenerate(Math.floor(Math.random() * 100000));
+});
+
+document.getElementById('savePng').addEventListener('click', () => {
+  myP5.savePng();
+});
+</script>
+
+</body>
+</html>

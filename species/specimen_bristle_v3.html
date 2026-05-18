@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRISTLE v3 — specimen</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper:      #e8e4dc;
+    --paper-deep: #d8d3c8;
+    --ink:        #131210;
+    --ink-soft:   #4a4640;
+    --ink-faint:  #8a857c;
+    --rule:       #131210;
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .workspace { display: flex; height: 100vh; }
+  .sidebar { width: 380px; min-width: 380px; overflow-y: auto; padding: 30px 22px; display: flex; flex-direction: column; gap: 16px; border-right: 1px solid rgba(19,18,16,0.18); }
+  .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    background-image:
+      radial-gradient(rgba(19,18,16,0.04) 1px, transparent 1px),
+      radial-gradient(rgba(19,18,16,0.025) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+  }
+
+  header { text-align: left; }
+  header .kicker { font-size: 10px; letter-spacing: 0.22em; color: var(--ink-faint); margin-bottom: 6px; }
+  header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.05em; margin: 0 0 8px 0; }
+  header p { margin: 0; color: var(--ink-soft); font-size: 11px; }
+
+  #sketch {
+    border: 1px solid rgba(19,18,16,0.18);
+    background: var(--paper);
+    display: inline-block;
+    line-height: 0;
+    font-size: 0;
+  }
+  #sketch canvas { display: block; }
+
+  .label { font-size: 11px; letter-spacing: 0.22em; font-weight: 500; color: var(--ink); }
+
+  .controls-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--paper-deep); }
+  button:active { transform: translateY(1px); }
+
+  .panel {
+    width: 100%;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.18);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .panel-group h4 {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    color: var(--ink-faint);
+    margin: 0 0 10px 0;
+    font-weight: 500;
+  }
+
+  .panel-group-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; }
+  .panel-group-head h4 { margin: 0; }
+  .tone-meta { display: flex; align-items: center; gap: 12px; }
+  .tone-curve { flex-shrink: 0; background: rgba(19,18,16,0.04); }
+  .luma-readout { font-size: 9px; letter-spacing: 0.06em; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .inline-btn {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: 1px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .inline-btn:hover { background: var(--paper-deep); }
+
+  .panel-grid { display: grid; grid-template-columns: 1fr; gap: 5px; }
+  .panel-grid label { display: grid; grid-template-columns: 80px 1fr 44px; gap: 8px; align-items: center; font-size: 9.5px; letter-spacing: 0.1em; }
+  .panel-grid .name { color: var(--ink-soft); }
+  .panel-grid .val { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 1px;
+    background: var(--ink);
+    outline: none;
+    margin: 0;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px; height: 11px; background: var(--ink); cursor: pointer; border: 0; border-radius: 0;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 11px; height: 11px; background: var(--ink); cursor: pointer; border: none; border-radius: 0;
+  }
+
+  input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 18px;
+    border: 1px solid var(--ink);
+    background: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 1px; }
+  input[type="color"]::-webkit-color-swatch { border: none; }
+  input[type="color"]::-moz-color-swatch { border: none; }
+
+  .breed-selector { display: flex; gap: 18px; margin-bottom: 14px; font-size: 9.5px; letter-spacing: 0.1em; color: var(--ink-soft); flex-wrap: wrap; }
+  .breed-radio { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .breed-radio input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 11px; height: 11px;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    margin: 0;
+    position: relative;
+    background: var(--paper);
+  }
+  .breed-radio input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 5px; height: 5px;
+    background: var(--ink);
+    border-radius: 50%;
+  }
+  .breed-radio input[type="radio"]:checked + span { color: var(--ink); }
+  .breed-params { display: none; }
+  .breed-params.active { display: grid; }
+
+  #params-color_cluster.active {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cc-radio-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+  }
+  .cc-radio-row .name {
+    color: var(--ink-soft);
+    min-width: 62px;
+  }
+  #cc-palette-preview {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  #cc-palette-preview .swatch {
+    width: 24px;
+    height: 14px;
+    border: 1px solid var(--ink);
+  }
+
+  #formDebug {
+    display: none;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.18);
+    padding: 12px;
+    text-align: center;
+  }
+  #formDebug .dbg-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  #formDebug .dbg-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  #formDebug .dbg-label { font-size: 9px; letter-spacing: 0.22em; color: var(--ink-faint); }
+  #formDebug canvas {
+    display: block;
+    max-width: 100%;
+    background:
+      linear-gradient(45deg, #c8c2b6 25%, transparent 25%),
+      linear-gradient(-45deg, #c8c2b6 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #c8c2b6 75%),
+      linear-gradient(-45deg, transparent 75%, #c8c2b6 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  }
+
+  .specimen {
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    text-align: left;
+    white-space: pre;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.12);
+    padding: 16px 22px;
+    border-radius: 2px;
+    width: 100%;
+    overflow-x: auto;
+  }
+</style>
+</head>
+<body>
+<div class="workspace">
+<div class="sidebar">
+
+<header>
+  <div class="kicker">BRISTLE &middot; v3</div>
+  <h1>Specimen</h1>
+</header>
+
+<div class="controls-row">
+  <button id="reseedCurve">NEW CURVE</button>
+  <button id="reseedBreed">NEW SEED</button>
+  <button id="toggleDebug">SHOW FORM SOURCE</button>
+  <button id="reset">RESET</button>
+  <button id="savePng">SAVE PNG</button>
+</div>
+
+<div class="panel">
+  <div class="panel-group">
+    <h4>SHAPE · BODY</h4>
+    <div class="panel-grid">
+      <label>
+        <span class="name">RADIUS</span>
+        <input type="range" id="br-bodyRadius" min="40" max="180" step="1" value="90">
+        <span class="val" id="br-bodyRadius-val">90</span>
+      </label>
+      <label>
+        <span class="name">ASPECT</span>
+        <input type="range" id="br-bodyAspect" min="0" max="3.0" step="0.01" value="1.00">
+        <span class="val" id="br-bodyAspect-val">1.00</span>
+      </label>
+      <label>
+        <span class="name">VERTICES</span>
+        <input type="range" id="br-bodyVertices" min="4" max="16" step="1" value="10">
+        <span class="val" id="br-bodyVertices-val">10</span>
+      </label>
+      <label>
+        <span class="name">DEFORM</span>
+        <input type="range" id="br-bodyDeform" min="0" max="0.8" step="0.005" value="0.30">
+        <span class="val" id="br-bodyDeform-val">0.30</span>
+      </label>
+      <label>
+        <span class="name">THICKNESS</span>
+        <input type="range" id="br-bodyThick" min="1" max="24" step="0.25" value="3.5">
+        <span class="val" id="br-bodyThick-val">3.5</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <h4>SHAPE · SPIKES</h4>
+    <div class="panel-grid">
+      <label>
+        <span class="name">COUNT</span>
+        <input type="range" id="br-spikeCount" min="0" max="32" step="1" value="10">
+        <span class="val" id="br-spikeCount-val">10</span>
+      </label>
+      <label>
+        <span class="name">SEGMENTS</span>
+        <input type="range" id="br-spikeSeg" min="1" max="5" step="1" value="2">
+        <span class="val" id="br-spikeSeg-val">2</span>
+      </label>
+      <label>
+        <span class="name">ANGLE</span>
+        <input type="range" id="br-spikeAngle" min="0" max="60" step="0.5" value="25">
+        <span class="val" id="br-spikeAngle-val">25.0°</span>
+      </label>
+      <label>
+        <span class="name">LENGTH</span>
+        <input type="range" id="br-spikeLen" min="10" max="100" step="1" value="35">
+        <span class="val" id="br-spikeLen-val">35</span>
+      </label>
+      <label>
+        <span class="name">LEN VAR</span>
+        <input type="range" id="br-spikeVar" min="0" max="0.8" step="0.01" value="0.40">
+        <span class="val" id="br-spikeVar-val">0.40</span>
+      </label>
+      <label>
+        <span class="name">THICKNESS</span>
+        <input type="range" id="br-spikeThick" min="0.5" max="12" step="0.1" value="1.75">
+        <span class="val" id="br-spikeThick-val">1.75</span>
+      </label>
+      <label>
+        <span class="name">TAPER</span>
+        <input type="range" id="br-spikeTaper" min="0" max="1" step="0.005" value="0.85">
+        <span class="val" id="br-spikeTaper-val">0.85</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <h4>LIGHT</h4>
+    <div class="panel-grid">
+      <label>
+        <span class="name">LIGHT X</span>
+        <input type="range" id="light-x" min="-2" max="2" step="0.01" value="0.30">
+        <span class="val" id="light-x-val">0.30</span>
+      </label>
+      <label>
+        <span class="name">LIGHT Y</span>
+        <input type="range" id="light-y" min="-1" max="2" step="0.01" value="1.00">
+        <span class="val" id="light-y-val">1.00</span>
+      </label>
+      <label>
+        <span class="name">LIGHT Z</span>
+        <input type="range" id="light-z" min="-2" max="2" step="0.01" value="0.45">
+        <span class="val" id="light-z-val">0.45</span>
+      </label>
+      <label>
+        <span class="name">KEY</span>
+        <input type="range" id="light-key" min="0" max="3" step="0.05" value="1.20">
+        <span class="val" id="light-key-val">1.20</span>
+      </label>
+      <label>
+        <span class="name">AMBIENT</span>
+        <input type="range" id="light-ambient" min="0" max="1" step="0.01" value="0.10">
+        <span class="val" id="light-ambient-val">0.10</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-head">
+      <h4>TONE</h4>
+      <div class="tone-meta">
+        <svg class="tone-curve" id="tone-curve" width="48" height="24" viewBox="0 0 48 24" preserveAspectRatio="none">
+          <rect x="0.5" y="0.5" width="47" height="23" fill="none" stroke="rgba(19,18,16,0.25)" stroke-width="0.5"/>
+          <line x1="0" y1="24" x2="48" y2="0" stroke="rgba(19,18,16,0.15)" stroke-width="0.5" stroke-dasharray="1,1"/>
+          <path id="tone-curve-path" fill="none" stroke="#131210" stroke-width="1.2" d=""/>
+        </svg>
+        <span class="luma-readout" id="luma-readout">LUMA --</span>
+        <button class="inline-btn" id="auto-levels">AUTO</button>
+      </div>
+    </div>
+    <div class="panel-grid">
+      <label>
+        <span class="name">BLACK PT</span>
+        <input type="range" id="tone-black" min="0" max="0.5" step="0.005" value="0.0">
+        <span class="val" id="tone-black-val">0.000</span>
+      </label>
+      <label>
+        <span class="name">WHITE PT</span>
+        <input type="range" id="tone-white" min="0.5" max="1.0" step="0.005" value="1.0">
+        <span class="val" id="tone-white-val">1.000</span>
+      </label>
+      <label>
+        <span class="name">GAMMA</span>
+        <input type="range" id="tone-gamma" min="0.30" max="3.0" step="0.01" value="1.0">
+        <span class="val" id="tone-gamma-val">1.00</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <h4>POLARITY</h4>
+    <div class="breed-selector" style="margin-bottom: 10px;">
+      <label class="breed-radio">
+        <input type="radio" name="polarity" value="positive" checked>
+        <span>POSITIVE</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="polarity" value="negative">
+        <span>NEGATIVE</span>
+      </label>
+    </div>
+    <div class="panel-grid">
+      <label>
+        <span class="name">FILL LUMA</span>
+        <input type="range" id="fill-luma" min="0.00" max="1.00" step="0.01" value="0.00">
+        <span class="val" id="fill-luma-val">0.00</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <h4>INK</h4>
+    <div class="panel-grid">
+      <label>
+        <span class="name">COLOR</span>
+        <input type="color" id="ink-color" value="#0e0d0b">
+        <span class="val" id="ink-color-val">#0E0D0B</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel-group">
+    <h4>BREED</h4>
+    <div class="breed-selector">
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="raster_vertical">
+        <span>RASTER VERTICAL</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="stipple">
+        <span>STIPPLE</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="halftone" checked>
+        <span>HALFTONE</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="riso_noise">
+        <span>RISO NOISE</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="color_blocking">
+        <span>COLOR BLOCKING</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="outline">
+        <span>OUTLINE</span>
+      </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="color_cluster">
+        <span>COLOR CLUSTER</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-raster_vertical">
+      <label>
+        <span class="name">SPACING</span>
+        <input type="range" id="raster-spacing" min="0.8" max="3.0" step="0.05" value="1.6">
+        <span class="val" id="raster-spacing-val">1.60</span>
+      </label>
+      <label>
+        <span class="name">LENGTH</span>
+        <input type="range" id="raster-length" min="2" max="20" step="0.5" value="6">
+        <span class="val" id="raster-length-val">6.0</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-stipple">
+      <label>
+        <span class="name">DENSITY</span>
+        <input type="range" id="stipple-density" min="0.02" max="0.40" step="0.005" value="0.18">
+        <span class="val" id="stipple-density-val">0.180</span>
+      </label>
+      <label>
+        <span class="name">DOT SIZE</span>
+        <input type="range" id="stipple-dotSize" min="0.6" max="3.0" step="0.05" value="1.4">
+        <span class="val" id="stipple-dotSize-val">1.40</span>
+      </label>
+      <label>
+        <span class="name">SIZE VAR</span>
+        <input type="range" id="stipple-dotVar" min="0.0" max="0.8" step="0.02" value="0.40">
+        <span class="val" id="stipple-dotVar-val">0.40</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params active" id="params-halftone">
+      <label>
+        <span class="name">CELL SIZE</span>
+        <input type="range" id="ht-cell" min="3" max="18" step="0.25" value="6">
+        <span class="val" id="ht-cell-val">6.00</span>
+      </label>
+      <label>
+        <span class="name">DOT SIZE</span>
+        <input type="range" id="ht-dotSize" min="0.30" max="1.00" step="0.01" value="0.85">
+        <span class="val" id="ht-dotSize-val">0.85</span>
+      </label>
+      <label>
+        <span class="name">COVERAGE</span>
+        <input type="range" id="ht-coverage" min="0.30" max="1.00" step="0.01" value="0.85">
+        <span class="val" id="ht-coverage-val">0.85</span>
+      </label>
+      <label>
+        <span class="name">JITTER</span>
+        <input type="range" id="ht-jitter" min="0" max="1.5" step="0.01" value="0.00">
+        <span class="val" id="ht-jitter-val">0.00</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-riso_noise">
+      <label>
+        <span class="name">DENSITY</span>
+        <input type="range" id="riso-density" min="0.02" max="0.40" step="0.005" value="0.16">
+        <span class="val" id="riso-density-val">0.160</span>
+      </label>
+      <label>
+        <span class="name">DOT SIZE</span>
+        <input type="range" id="riso-dotSize" min="0.6" max="3.0" step="0.05" value="1.4">
+        <span class="val" id="riso-dotSize-val">1.40</span>
+      </label>
+      <label>
+        <span class="name">SIZE VAR</span>
+        <input type="range" id="riso-dotVar" min="0.0" max="0.8" step="0.02" value="0.40">
+        <span class="val" id="riso-dotVar-val">0.40</span>
+      </label>
+      <label>
+        <span class="name">MISREG</span>
+        <input type="range" id="riso-misreg" min="0" max="4" step="0.1" value="1.5">
+        <span class="val" id="riso-misreg-val">1.5</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-color_blocking">
+      <label>
+        <span class="name">DENSITY</span>
+        <input type="range" id="cb-density" min="0.05" max="0.60" step="0.005" value="0.25">
+        <span class="val" id="cb-density-val">0.250</span>
+      </label>
+      <label>
+        <span class="name">DOT SIZE</span>
+        <input type="range" id="cb-dotSize" min="0.6" max="3.0" step="0.05" value="1.4">
+        <span class="val" id="cb-dotSize-val">1.40</span>
+      </label>
+      <label>
+        <span class="name">SHADING</span>
+        <input type="range" id="cb-shading" min="0" max="1" step="0.01" value="0.30">
+        <span class="val" id="cb-shading-val">0.30</span>
+      </label>
+    </div>
+
+    <div class="panel-grid breed-params" id="params-outline">
+      <label>
+        <span class="name">WEIGHT</span>
+        <input type="range" id="ol-weight" min="0.5" max="5.0" step="0.1" value="1.5">
+        <span class="val" id="ol-weight-val">1.5</span>
+      </label>
+      <label>
+        <span class="name">JITTER</span>
+        <input type="range" id="ol-jitter" min="0" max="1.5" step="0.01" value="0.00">
+        <span class="val" id="ol-jitter-val">0.00</span>
+      </label>
+    </div>
+
+    <div class="breed-params" id="params-color_cluster">
+      <div class="cc-radio-row">
+        <span class="name">HARMONY</span>
+        <label class="breed-radio"><input type="radio" name="cc-harmony" value="complementary"><span>COMPL</span></label>
+        <label class="breed-radio"><input type="radio" name="cc-harmony" value="analogous"><span>ANALOG</span></label>
+        <label class="breed-radio"><input type="radio" name="cc-harmony" value="monochromatic"><span>MONO</span></label>
+        <label class="breed-radio"><input type="radio" name="cc-harmony" value="triadic" checked><span>TRIAD</span></label>
+        <label class="breed-radio"><input type="radio" name="cc-harmony" value="tetradic"><span>TETRAD</span></label>
+        <label class="breed-radio"><input type="radio" name="cc-harmony" value="accented_analogous"><span>ACC ANALOG</span></label>
+      </div>
+      <div id="cc-palette-preview"></div>
+      <div class="panel-grid">
+        <label>
+          <span class="name">COLOR</span>
+          <input type="color" id="cc-baseColor" value="#cc3333">
+          <span class="val" id="cc-baseColor-val">#CC3333</span>
+        </label>
+        <label>
+          <span class="name">COUNT</span>
+          <input type="range" id="cc-count" min="20" max="2000" step="10" value="300">
+          <span class="val" id="cc-count-val">300</span>
+        </label>
+        <label>
+          <span class="name">SIZE</span>
+          <input type="range" id="cc-size" min="2" max="40" step="0.5" value="8.0">
+          <span class="val" id="cc-size-val">8.0</span>
+        </label>
+        <label>
+          <span class="name">SIZE VAR</span>
+          <input type="range" id="cc-sizeVar" min="0" max="1.0" step="0.02" value="0.50">
+          <span class="val" id="cc-sizeVar-val">0.50</span>
+        </label>
+        <label>
+          <span class="name">CIRCLE %</span>
+          <input type="range" id="cc-circlePct" min="0" max="100" step="1" value="100">
+          <span class="val" id="cc-circlePct-val">100</span>
+        </label>
+        <label>
+          <span class="name">QUAD %</span>
+          <input type="range" id="cc-quadPct" min="0" max="100" step="1" value="0">
+          <span class="val" id="cc-quadPct-val">0</span>
+        </label>
+        <label>
+          <span class="name">TRIANGLE %</span>
+          <input type="range" id="cc-trianglePct" min="0" max="100" step="1" value="0">
+          <span class="val" id="cc-trianglePct-val">0</span>
+        </label>
+        <label>
+          <span class="name">ROTATION</span>
+          <input type="range" id="cc-rotation" min="0" max="180" step="1" value="0">
+          <span class="val" id="cc-rotation-val">0°</span>
+        </label>
+        <label>
+          <span class="name">OPACITY</span>
+          <input type="range" id="cc-opacity" min="0" max="1.0" step="0.02" value="1.00">
+          <span class="val" id="cc-opacity-val">1.00</span>
+        </label>
+        <label>
+          <span class="name">DARK MIX</span>
+          <input type="range" id="cc-darkMix" min="0" max="1.0" step="0.02" value="0.00">
+          <span class="val" id="cc-darkMix-val">0.00</span>
+        </label>
+        <label>
+          <span class="name">LUMA RESP</span>
+          <input type="range" id="cc-lumaResponse" min="0" max="1.0" step="0.02" value="0.00">
+          <span class="val" id="cc-lumaResponse-val">0.00</span>
+        </label>
+        <label>
+          <span class="name">NOISE FREQ</span>
+          <input type="range" id="cc-noiseFreq" min="0.002" max="0.10" step="0.002" value="0.02">
+          <span class="val" id="cc-noiseFreq-val">0.020</span>
+        </label>
+        <label>
+          <span class="name">NOISE STR</span>
+          <input type="range" id="cc-noiseStrength" min="0" max="1.0" step="0.02" value="0.00">
+          <span class="val" id="cc-noiseStrength-val">0.00</span>
+        </label>
+        <label>
+          <span class="name">SCATTER</span>
+          <input type="range" id="cc-scatter" min="0" max="120" step="1" value="0">
+          <span class="val" id="cc-scatter-val">0</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="formDebug">
+  <div class="dbg-row">
+    <div class="dbg-col">
+      <canvas id="formDebugLuma" width="560" height="420"></canvas>
+      <div class="dbg-label">LUMA FIELD</div>
+    </div>
+    <div class="dbg-col">
+      <canvas id="formDebugNormals" width="560" height="420"></canvas>
+      <div class="dbg-label">NORMAL FIELD · OBJECT-SPACE</div>
+    </div>
+  </div>
+</div>
+
+<pre class="specimen" id="specimenView"></pre>
+
+</div><!-- /.sidebar -->
+<div class="canvas-area"><div id="sketch"></div></div>
+</div><!-- /.workspace -->
+
+<script>
+/* =====================================================================
+   SPECIMEN BRISTLE v3 · aspect + extended thickness range
+   --------------------------------------------------------------------
+   Adds ASPECT (x-axis stretch, range 0.3 to 3.0) so the body can be
+   elongated longer than tall or compressed. Implementation: each
+   control point's x is multiplied by aspect, y unchanged, so
+   bodyRadius keeps its "how tall" semantics and aspect adds "how
+   wide relative to tall." Spike outward direction stays (attach -
+   centroid) normalized; for aspect-stretched bodies, spikes near the
+   stretched axis point along that axis rather than perpendicular to
+   the local skin. Confirmed acceptable for convex bodies.
+
+   Body thickness range extended to 1-24, spike thickness to 0.5-12.
+   Default 2:1 ratio preserved (3.5 / 1.75). Both remain independent
+   sliders so population randomization can detune the ratio per seed.
+
+   Architecture below is unchanged from v2:
+   ---
+   SPECIMEN BRISTLE v2 · closed body + radial spikes
+   --------------------------------------------------------------------
+   SHAPE-141. v1 modelled the species as a horizontal spine with
+   perpendicular bristles. The reference shows something different:
+   a closed irregular body (a "collapsed circle") with multi-segment
+   spikes radiating outward from the centre. v2 implements that.
+
+   Body: N control points placed evenly around the canvas centroid
+   at angles i * 2π / N, each with radius perturbed by bodyDeform.
+   The body curve is a closed Catmull-Rom spline through these
+   control points, sampled at 12 subdivisions per segment. The first
+   sampled point is duplicated at the end of the polyline so the
+   form-pass mid-stamp loop bridges the seam.
+
+   Spikes: SPIKE_COUNT spikes placed at evenly-spaced parameter
+   positions along the body curve (independent of body vertex
+   count). Each spike walks SPIKE_SEGMENTS steps in the centroid->
+   attach direction, with random per-joint angle deviation in
+   [-spikeAngle, +spikeAngle]. Tip taper, length variation, and
+   thickness all parameter-controlled.
+
+   All randomness is seeded so a saved tuple round-trips identically.
+   Inherits filament's synthesized tube-normal model so light
+   convention matches the 3D species.
+   ===================================================================== */
+
+const DEFAULTS = {
+  species: "bristle",
+  breed:   "halftone",
+
+  geometry: {
+    type:          "bristle",
+    bodyRadius:    90,
+    bodyAspect:    1.00,
+    bodyVertices:  10,
+    bodyDeform:    0.30,
+    bodyThickness: 3.5,
+    spikeCount:    10,
+    spikeSegments: 2,
+    spikeAngle:    25,
+    spikeLength:   35,
+    spikeLenVar:   0.40,
+    spikeThick:    1.75,
+    spikeTaper:    0.85,
+    seed:          4271
+  },
+
+  light: {
+    keyIntensity: 1.20,
+    direction:    [0.30, 1.00, 0.45],
+    ambient:      0.10
+  },
+
+  tone: {
+    blackPoint: 0.0,
+    whitePoint: 1.0,
+    gamma:      1.0
+  },
+
+  polarity: "positive",
+  fillLuma: 0.00,
+
+  breeds: {
+    raster_vertical: {
+      spacing:    1.6,
+      segmentLen: 6,
+      jitterX:    0.4,
+      weightBase: 1.0,
+      weightVar:  0.35,
+      lumaWeight: 0.40
+    },
+    stipple: {
+      density:     0.18,
+      dotSizeBase: 1.4,
+      dotSizeVar:  0.40,
+      jitter:      0.5
+    },
+    halftone: {
+      cellSize:  6.00,
+      dotSize:   0.85,
+      coverage:  0.85,
+      jitter:    0.00
+    },
+    riso_noise: {
+      density:     0.16,
+      dotSizeBase: 1.4,
+      dotSizeVar:  0.40,
+      jitter:      0.5,
+      misreg:      1.5,
+      layers: [
+        { color: [20, 18, 14, 240],   offset: [0.0, 0.0],  densityMult: 1.00, lumaResponse:  0.60 },
+        { color: [232, 89, 79, 220],  offset: [1.5, -0.8], densityMult: 0.55, lumaResponse:  0.00 },
+        { color: [248, 215, 88, 220], offset: [-1.2, 1.5], densityMult: 0.40, lumaResponse: -0.30 },
+        { color: [64, 110, 178, 220], offset: [2.0, 1.2],  densityMult: 0.35, lumaResponse:  0.50 }
+      ]
+    },
+    color_blocking: {
+      density:     0.25,
+      dotSizeBase: 1.4,
+      dotSizeVar:  0.30,
+      jitter:      0.5,
+      shading:     0.30,
+      defaultColor: [40, 36, 30, 200],
+      regions: [
+        { dirX: 0, dirY:  1, dirZ: 0, threshold: 0.40, color: [64, 110, 178, 220] },
+        { dirX: 0, dirY: -1, dirZ: 0, threshold: 0.40, color: [58, 140, 80, 220] },
+        { dirX: 0, dirY:  0, dirZ: 1, threshold: 0.65, color: [248, 215, 88, 220] }
+      ]
+    },
+    outline: {
+      weight: 1.5,
+      jitter: 0.00
+    },
+    color_cluster: {
+      count: 300,
+      size: 8,
+      sizeVar: 0.50,
+      circlePct: 100,
+      quadPct: 0,
+      trianglePct: 0,
+      rotation: 0,
+      opacity: 1.0,
+      baseColor: [0, 60, 50],
+      harmony: "triadic",
+      darkMix: 0.0,
+      lumaResponse: 0.0,
+      noiseFreq: 0.02,
+      noiseStrength: 0.0,
+      scatter: 0
+    }
+  },
+
+  paperGrain: 0.55,
+  inkColor:   [14, 13, 11],
+  inkAlpha:   232,
+
+  seed: 1138
+};
+
+const SPECIMEN = JSON.parse(JSON.stringify(DEFAULTS));
+
+const CANVAS_W = 560;
+const CANVAS_H = 420;
+
+/* ---------- Form pass ---------- */
+
+const _silhouette = new Uint8Array(CANVAS_W * CANVAS_H);
+const _luma = new Float32Array(CANVAS_W * CANVAS_H);
+const _normals = new Float32Array(CANVAS_W * CANVAS_H * 3);
+const _bestDist = new Float32Array(CANVAS_W * CANVAS_H);
+
+const formData = {
+  silhouette: _silhouette, luma: _luma, normals: _normals,
+  W: CANVAS_W, H: CANVAS_H,
+  lumaMin: 0, lumaMax: 1, lumaMean: 0.5
+};
+
+function makeValueNoise(seed) {
+  const N = 2048;
+  let s = (seed >>> 0) || 1;
+  const tbl = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    tbl[i] = s / 4294967296;
+  }
+  return function(x) {
+    const i = Math.floor(x);
+    const f = x - i;
+    const a = tbl[((i % N) + N) % N];
+    const b = tbl[(((i + 1) % N) + N) % N];
+    const t = f * f * (3 - 2 * f);
+    return a * (1 - t) + b * t;
+  };
+}
+
+/* Seeded mulberry32-style RNG. Uncorrelated samples per call.
+   Used to vary per-bristle length without correlating between
+   adjacent bristles (which would read as a wave through the
+   length values rather than independent variation). */
+function makeSeededRandom(seed) {
+  let s = (seed >>> 0) || 1;
+  return function() {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+/* Tangent perpendiculars from central differences along an open
+   polyline (clamps at endpoints). */
+function computePerpendiculars(pts) {
+  const last = pts.length - 1;
+  for (let i = 0; i <= last; i++) {
+    const a = pts[Math.max(0, i - 1)];
+    const b = pts[Math.min(last, i + 1)];
+    const tx = b.x - a.x;
+    const ty = b.y - a.y;
+    const tLen = Math.sqrt(tx * tx + ty * ty) || 1;
+    pts[i].perpX = -ty / tLen;
+    pts[i].perpY =  tx / tLen;
+  }
+}
+
+/* Closed-loop variant: wraps indices so the seam between last and
+   first vertex has a continuous tangent. Used for the body curve. */
+function computePerpendicularsClosed(pts) {
+  const N = pts.length;
+  for (let i = 0; i < N; i++) {
+    const a = pts[(i - 1 + N) % N];
+    const b = pts[(i + 1) % N];
+    const tx = b.x - a.x;
+    const ty = b.y - a.y;
+    const tLen = Math.sqrt(tx * tx + ty * ty) || 1;
+    pts[i].perpX = -ty / tLen;
+    pts[i].perpY =  tx / tLen;
+  }
+}
+
+/* Catmull-Rom interpolation between four control points.
+   t in [0, 1]; the curve passes through p1 at t=0 and p2 at t=1.
+   p0 and p3 set the tangents at the endpoints. */
+function evalCatmullRom(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const x = 0.5 * (
+    2 * p1.x +
+    (-p0.x + p2.x) * t +
+    (2*p0.x - 5*p1.x + 4*p2.x - p3.x) * t2 +
+    (-p0.x + 3*p1.x - 3*p2.x + p3.x) * t3
+  );
+  const y = 0.5 * (
+    2 * p1.y +
+    (-p0.y + p2.y) * t +
+    (2*p0.y - 5*p1.y + 4*p2.y - p3.y) * t2 +
+    (-p0.y + 3*p1.y - 3*p2.y + p3.y) * t3
+  );
+  return { x, y };
+}
+
+/* Body control points: N points placed at angles i * 2π / N around
+   the canvas centroid, with each point's radius perturbed by
+   bodyDeform * baseRadius via the seeded RNG. The "collapsed circle"
+   from the reference: at deform = 0 it's a perfect circle, at
+   deform = 0.5 it's quite irregular. */
+function generateBodyControlPoints(geom) {
+  const rndDeform = makeSeededRandom(geom.seed);
+  const N = Math.max(3, Math.floor(geom.bodyVertices));
+  const cx = CANVAS_W * 0.5;
+  const cy = CANVAS_H * 0.5;
+  const baseR = geom.bodyRadius;
+  const deform = geom.bodyDeform;
+  /* ASPECT scales the x-component of each control point. 1.0 = circle.
+     > 1 = body wider than tall (longer than tall in screen terms).
+     < 1 = body narrower than tall. y stays anchored to bodyRadius
+     so the slider reads as "stretch x." */
+  const aspect = geom.bodyAspect != null ? geom.bodyAspect : 1.0;
+
+  const cps = new Array(N);
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * 2 * Math.PI;
+    const radius = baseR * (1 + (rndDeform() - 0.5) * 2 * deform);
+    cps[i] = {
+      x: cx + Math.cos(angle) * radius * aspect,
+      y: cy + Math.sin(angle) * radius
+    };
+  }
+  return cps;
+}
+
+/* Body curve: closed Catmull-Rom interpolation through control points.
+   Each segment is sampled at SAMPLES_PER_SEGMENT subdivisions for a
+   smooth tube. The first point is duplicated at the end of the
+   polyline so the form-pass mid-stamp loop bridges the seam between
+   last and first vertices. */
+function generateBodyCurve(geom) {
+  const cps = generateBodyControlPoints(geom);
+  const N = cps.length;
+  const SAMPLES_PER_SEGMENT = 12;
+  const halfThick = Math.max(0.5, 0.5 * geom.bodyThickness);
+
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    const p0 = cps[(i - 1 + N) % N];
+    const p1 = cps[i];
+    const p2 = cps[(i + 1) % N];
+    const p3 = cps[(i + 2) % N];
+    for (let s = 0; s < SAMPLES_PER_SEGMENT; s++) {
+      const t = s / SAMPLES_PER_SEGMENT;
+      const pos = evalCatmullRom(p0, p1, p2, p3, t);
+      pts.push({ x: pos.x, y: pos.y, halfThick, perpX: 0, perpY: 0 });
+    }
+  }
+  computePerpendicularsClosed(pts);
+  pts.push({
+    x: pts[0].x, y: pts[0].y, halfThick: pts[0].halfThick,
+    perpX: pts[0].perpX, perpY: pts[0].perpY
+  });
+  return pts;
+}
+
+/* One spike: walks SEGMENTS steps from the attach point in the given
+   outward direction, with each joint after the first deviated by a
+   random angle in [-spikeAngle, +spikeAngle]. Length varies per spike
+   by spikeLenVar. Tip tapers via spikeTaper. */
+function generateSpike(geom, attach, outwardX, outwardY, rndLen, rndAngle) {
+  const lengthFactor = 1 + (rndLen() - 0.5) * 2 * geom.spikeLenVar;
+  const totalLen = Math.max(4, geom.spikeLength * lengthFactor);
+  const segments = Math.max(1, Math.floor(geom.spikeSegments));
+  const stepLen = totalLen / segments;
+  const angleRad = geom.spikeAngle * Math.PI / 180;
+  const baseHalf = geom.spikeThick * 0.5;
+
+  const pts = [];
+  let x = attach.x;
+  let y = attach.y;
+  let dirX = outwardX;
+  let dirY = outwardY;
+
+  pts.push({ x, y, halfThick: baseHalf, perpX: 0, perpY: 0 });
+
+  for (let j = 0; j < segments; j++) {
+    if (j > 0) {
+      const angleDelta = (rndAngle() - 0.5) * 2 * angleRad;
+      const cosA = Math.cos(angleDelta);
+      const sinA = Math.sin(angleDelta);
+      const nDirX = dirX * cosA - dirY * sinA;
+      const nDirY = dirX * sinA + dirY * cosA;
+      dirX = nDirX;
+      dirY = nDirY;
+    }
+    x += dirX * stepLen;
+    y += dirY * stepLen;
+    const u = (j + 1) / segments;
+    const taperMult = 1 - u * geom.spikeTaper;
+    const halfThick = Math.max(0.4, baseHalf * taperMult);
+    pts.push({ x, y, halfThick, perpX: 0, perpY: 0 });
+  }
+  computePerpendiculars(pts);
+  return pts;
+}
+
+/* All paths in one form pass: the closed body + COUNT spikes attached
+   at evenly-spaced parameter values along the body curve. Spike
+   placement is independent of body vertex count, so spikes can outnum-
+   ber or undernumber control points. Outward direction = (attach -
+   centroid) normalized; this points radially out from the body's
+   centre, even where the body has concavities. */
+function generateBristlePaths(geom) {
+  const rndLen = makeSeededRandom(geom.seed ^ 0xDEADBEEF);
+  const rndAngle = makeSeededRandom(geom.seed ^ 0xCAFEBABE);
+
+  const body = generateBodyCurve(geom);
+  const cx = CANVAS_W * 0.5;
+  const cy = CANVAS_H * 0.5;
+  const paths = [body];
+
+  const spikeCount = Math.max(0, Math.floor(geom.spikeCount));
+  if (spikeCount === 0) return paths;
+
+  /* body has the first point duplicated at the end (for closed
+     mid-stamping); use the unique stretch for spike attachment so
+     no two spikes land on the same point at the seam. */
+  const uniqueLen = body.length - 1;
+
+  for (let k = 0; k < spikeCount; k++) {
+    const t = k / spikeCount;
+    const idx = Math.floor(t * uniqueLen);
+    const attach = body[idx];
+
+    const dx = attach.x - cx;
+    const dy = attach.y - cy;
+    const dLen = Math.sqrt(dx * dx + dy * dy) || 1;
+    const outwardX = dx / dLen;
+    const outwardY = dy / dLen;
+
+    paths.push(generateSpike(geom, attach, outwardX, outwardY, rndLen, rndAngle));
+  }
+
+  return paths;
+}
+
+/* Lambert against the SPECIMEN light. World-space convention matches
+   the 3D species: +y is up, +z is toward viewer. Screen y is flipped
+   when synthesizing the normal (see stampWithNormal). */
+function shadeFromNormal(nx, ny, nz, light) {
+  const dx = light.direction[0], dy = light.direction[1], dz = light.direction[2];
+  const lLen = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  const lx = dx / lLen, ly = dy / lLen, lz = dz / lLen;
+  let dot = nx * lx + ny * ly + nz * lz;
+  if (dot < 0) dot = 0;
+  let l = dot * light.keyIntensity + light.ambient;
+  if (l < 0) l = 0;
+  else if (l > 1) l = 1;
+  return l;
+}
+
+function stampWithNormal(px, py, t, perpX, perpY, light) {
+  const W = CANVAS_W, H = CANVAS_H;
+  const xMin = Math.max(0, Math.floor(px - t));
+  const xMax = Math.min(W - 1, Math.ceil(px + t));
+  const yMin = Math.max(0, Math.floor(py - t));
+  const yMax = Math.min(H - 1, Math.ceil(py + t));
+  if (xMin > xMax || yMin > yMax) return;
+  const tInv = 1 / t;
+
+  for (let y = yMin; y <= yMax; y++) {
+    const rowBase = y * W;
+    for (let x = xMin; x <= xMax; x++) {
+      const dx = x - px;
+      const dy = y - py;
+      const dEuclid = Math.sqrt(dx * dx + dy * dy) * tInv;
+      if (dEuclid >= 1) continue;
+      const idx = rowBase + x;
+      if (dEuclid >= _bestDist[idx]) continue;
+      _bestDist[idx] = dEuclid;
+      _silhouette[idx] = 1;
+
+      /* Signed cross-section position: project pixel offset onto the
+         perpendicular. With the chain-of-circles stamp, this is an
+         approximation; it equals the perpendicular distance only when
+         the pixel sits exactly on this point's perpendicular line.
+         Off-axis pixels get a slightly underestimated |d|, which
+         pushes their synthesized normal toward the centerline (out-
+         of-plane). Visually this softens the rim transition rather
+         than producing artifacts. */
+      let dSigned = (dx * perpX + dy * perpY) * tInv;
+      if (dSigned >  1) dSigned =  1;
+      else if (dSigned < -1) dSigned = -1;
+
+      const nx = perpX * dSigned;
+      const nyScreen = perpY * dSigned;
+      const nyWorld = -nyScreen;
+      const flat = 1 - dSigned * dSigned;
+      const nz = flat > 0 ? Math.sqrt(flat) : 0;
+
+      const ni = idx * 3;
+      _normals[ni]     = nx;
+      _normals[ni + 1] = nyWorld;
+      _normals[ni + 2] = nz;
+
+      _luma[idx] = shadeFromNormal(nx, nyWorld, nz, light);
+    }
+  }
+}
+
+function renderFormPass() {
+  const W = CANVAS_W, H = CANVAS_H;
+  _silhouette.fill(0);
+  _luma.fill(0);
+  _normals.fill(0);
+  for (let i = 0; i < W * H; i++) _bestDist[i] = Infinity;
+
+  const paths = generateBristlePaths(SPECIMEN.geometry);
+  const light = SPECIMEN.light;
+
+  /* Each path (one spine, many bristles) is rendered independently:
+     stamp every vertex, then fill gaps between adjacent vertices with
+     interpolated mid-stamps using a freshly-computed segment perpend-
+     icular. Cross-path gaps are not filled (a bristle stops at its
+     tip; the next path is its own subpath). */
+  for (const path of paths) {
+    for (let p = 0; p < path.length; p++) {
+      const pt = path[p];
+      stampWithNormal(pt.x, pt.y, pt.halfThick, pt.perpX, pt.perpY, light);
+    }
+    for (let p = 0; p < path.length - 1; p++) {
+      const a = path[p], b = path[p + 1];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const seg = Math.sqrt(dx * dx + dy * dy);
+      const minThick = Math.min(a.halfThick, b.halfThick);
+      if (seg <= minThick * 0.6) continue;
+      const extra = Math.ceil(seg / Math.max(1, minThick * 0.5));
+      const tLen = seg || 1;
+      const segPerpX = -dy / tLen;
+      const segPerpY =  dx / tLen;
+      for (let k = 1; k < extra; k++) {
+        const u = k / extra;
+        const sx = a.x + dx * u;
+        const sy = a.y + dy * u;
+        const sHalf = a.halfThick * (1 - u) + b.halfThick * u;
+        stampWithNormal(sx, sy, sHalf, segPerpX, segPerpY, light);
+      }
+    }
+  }
+
+  let minL = 1, maxL = 0, sumL = 0, count = 0;
+  for (let i = 0; i < W * H; i++) {
+    if (_silhouette[i]) {
+      const l = _luma[i];
+      if (l < minL) minL = l;
+      if (l > maxL) maxL = l;
+      sumL += l;
+      count++;
+    }
+  }
+  formData.lumaMin  = count ? minL : 0;
+  formData.lumaMax  = count ? maxL : 0;
+  formData.lumaMean = count ? sumL / count : 0;
+}
+
+/* ---------- Polarity pass ---------- */
+
+function applyPolarity() {
+  if (SPECIMEN.polarity !== "negative") return;
+  const total = CANVAS_W * CANVAS_H;
+  const fill = SPECIMEN.fillLuma;
+  let minL = fill, maxL = fill, sumL = 0, count = 0;
+  for (let i = 0; i < total; i++) {
+    if (_silhouette[i] === 1) {
+      _silhouette[i] = 0;
+      _luma[i] = 0;
+      _normals[i * 3] = 0;
+      _normals[i * 3 + 1] = 0;
+      _normals[i * 3 + 2] = 0;
+    } else {
+      _silhouette[i] = 1;
+      _luma[i] = fill;
+      sumL += fill;
+      count++;
+    }
+  }
+  formData.lumaMin  = count ? minL : 0;
+  formData.lumaMax  = count ? maxL : 0;
+  formData.lumaMean = count ? sumL / count : 0;
+}
+
+/* ---------- Tone pass ---------- */
+
+function applyTone(rawLuma, tone) {
+  const range = tone.whitePoint - tone.blackPoint;
+  if (range <= 0) return 0;
+  let l = (rawLuma - tone.blackPoint) / range;
+  if (l < 0) l = 0;
+  else if (l > 1) l = 1;
+  return Math.pow(l, tone.gamma);
+}
+
+/* ---------- Breed pass ---------- */
+
+let myP5;
+let currentSeed = SPECIMEN.seed;
+
+const sketch = (p) => {
+  let pPaper = null;
+
+  p.setup = function() {
+    const c = p.createCanvas(CANVAS_W, CANVAS_H);
+    c.parent('sketch');
+    p.noLoop();
+    pPaper = buildPaperTexture(p);
+    renderSpecimen(p, pPaper);
+  };
+
+  p.regenerate = function(newSeed) {
+    if (newSeed !== undefined) currentSeed = newSeed;
+    renderSpecimen(p, pPaper);
+  };
+
+  p.savePng = function() {
+    p.saveCanvas(`bristle-${SPECIMEN.breed}-v3`, 'png');
+  };
+};
+
+function renderSpecimen(p, paper) {
+  p.randomSeed(currentSeed);
+  p.noiseSeed(currentSeed);
+  drawPaper(p, paper);
+  drawBreedFromForm(p, SPECIMEN, formData);
+  drawGrainOverlay(p);
+  drawFrameEdge(p);
+}
+
+function buildPaperTexture(p) {
+  const buf = p.createGraphics(CANVAS_W, CANVAS_H);
+  buf.pixelDensity(1);
+  buf.noiseSeed(1234);
+  buf.loadPixels();
+  for (let y = 0; y < buf.height; y++) {
+    for (let x = 0; x < buf.width; x++) {
+      const n = buf.noise(x * 0.04, y * 0.04);
+      const v = 232 + (n - 0.5) * 18;
+      const i = 4 * (y * buf.width + x);
+      buf.pixels[i]     = v;
+      buf.pixels[i + 1] = v - 4;
+      buf.pixels[i + 2] = v - 12;
+      buf.pixels[i + 3] = 255;
+    }
+  }
+  buf.updatePixels();
+  return buf;
+}
+
+function drawPaper(p, paper) {
+  p.image(paper, 0, 0);
+  p.noStroke();
+  for (let i = 0; i < 220; i++) {
+    p.fill(40, 36, 30, p.random(8, 22));
+    p.rect(p.random(p.width), p.random(p.height), p.random(1, 1.6), p.random(1, 1.6));
+  }
+}
+
+function drawBreedFromForm(p, s, form) {
+  const params = s.breeds[s.breed];
+  if      (s.breed === "raster_vertical") drawRasterFromForm(p, s, params, form);
+  else if (s.breed === "stipple")         drawStippleFromForm(p, s, params, form);
+  else if (s.breed === "halftone")        drawHalftoneFromForm(p, s, params, form);
+  else if (s.breed === "riso_noise")      drawRisoNoiseFromForm(p, s, params, form);
+  else if (s.breed === "color_blocking")  drawColorBlockingFromForm(p, s, params, form);
+  else if (s.breed === "outline")         drawOutlineFromForm(p, s, params, form);
+  else if (s.breed === "color_cluster") drawColorClusterFromForm(p, s, params, form);
+}
+
+function drawRasterFromForm(p, s, sp, form) {
+  const { silhouette, W: fW, H: fH } = form;
+  p.stroke(s.inkColor[0], s.inkColor[1], s.inkColor[2], s.inkAlpha);
+
+  for (let cx = 0; cx < p.width; cx += sp.spacing) {
+    const fx = Math.floor(cx);
+    if (fx < 0 || fx >= fW) continue;
+    let runStart = -1;
+    for (let fy = 0; fy <= fH; fy++) {
+      const inForm = fy < fH ? silhouette[fy * fW + fx] === 1 : false;
+      if (inForm && runStart < 0) {
+        runStart = fy;
+      } else if (!inForm && runStart >= 0) {
+        drawRasterColumnRun(p, s, sp, fx, runStart, fy - 1, form, cx);
+        runStart = -1;
+      }
+    }
+  }
+}
+
+function drawRasterColumnRun(p, s, sp, fx, fyStart, fyEnd, form, cxBase) {
+  const tone = s.tone;
+  const segLen = sp.segmentLen;
+  const jitterRange = Math.max(1.5, segLen * 0.25);
+  const jx = p.random(-sp.jitterX, sp.jitterX);
+
+  let fy = fyStart;
+  while (fy < fyEnd) {
+    const fySegEnd = Math.min(fy + segLen + p.random(-jitterRange, jitterRange), fyEnd);
+    const fyMid = Math.floor((fy + fySegEnd) / 2);
+    const lIdx = fyMid * form.W + fx;
+    const l = applyTone(form.luma[lIdx], tone);
+
+    const dropP = l;
+
+    if (p.random() > dropP) {
+      const baseW = sp.weightBase * (1 + p.random(-sp.weightVar, sp.weightVar));
+      const lumaWeightMult = 1.15 - l * sp.lumaWeight;
+      p.strokeWeight(Math.max(0.4, baseW * lumaWeightMult));
+
+      const cy1 = fy + p.random(-0.3, 0.3);
+      const cy2 = fySegEnd + p.random(-0.3, 0.3);
+      const cxJ1 = cxBase + jx + p.random(-0.25, 0.25);
+      const cxJ2 = cxBase + jx + p.random(-0.25, 0.25);
+      p.line(cxJ1, cy1, cxJ2, cy2);
+    }
+    fy = fySegEnd + p.random(0, Math.max(0.4, segLen * 0.1));
+  }
+}
+
+function drawStippleFromForm(p, s, sp, form) {
+  const { silhouette, luma, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+
+  for (let y = 0; y < fH; y++) {
+    for (let x = 0; x < fW; x++) {
+      const idx = y * fW + x;
+      if (silhouette[idx] !== 1) continue;
+
+      const l = applyTone(luma[idx], tone);
+      const localDensity = sp.density * (1 - l);
+
+      if (p.random() > localDensity) continue;
+
+      const jx = p.random(-sp.jitter, sp.jitter);
+      const jy = p.random(-sp.jitter, sp.jitter);
+      const dotSize = sp.dotSizeBase * (1 + p.random(-sp.dotSizeVar, sp.dotSizeVar));
+
+      const alpha = s.inkAlpha * (1 - l * 0.18);
+      p.fill(s.inkColor[0], s.inkColor[1], s.inkColor[2], alpha);
+
+      p.circle(x + jx, y + jy, Math.max(0.4, dotSize));
+    }
+  }
+}
+
+/* Halftone walks a canvas-aligned grid. For each cell we sample the
+   silhouette and luma at the cell center; if the center is inside the
+   form, draw one circle whose diameter scales with (1 - luma·coverage).
+   Coverage caps how much the lit extreme erases the dot, same role
+   it plays in raster and stipple. The grid is tied to the canvas
+   origin so multiple specimens later sharing one canvas inherit a
+   shared grid alignment by default. */
+function drawHalftoneFromForm(p, s, sp, form) {
+  const { silhouette, luma, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+  p.fill(s.inkColor[0], s.inkColor[1], s.inkColor[2], s.inkAlpha);
+
+  const cell = Math.max(1, sp.cellSize);
+  const halfCell = cell * 0.5;
+  const dotMax = cell * sp.dotSize;
+  const useJitter = sp.jitter > 0;
+
+  for (let cy = halfCell; cy < fH; cy += cell) {
+    for (let cx = halfCell; cx < fW; cx += cell) {
+      const fx = Math.floor(cx);
+      const fy = Math.floor(cy);
+      const idx = fy * fW + fx;
+      if (silhouette[idx] !== 1) continue;
+
+      const l = applyTone(luma[idx], tone);
+      const diameter = dotMax * (1 - l * sp.coverage);
+      if (diameter < 0.3) continue;
+
+      let dx = 0, dy = 0;
+      if (useJitter) {
+        dx = p.random(-sp.jitter, sp.jitter);
+        dy = p.random(-sp.jitter, sp.jitter);
+      }
+      p.circle(cx + dx, cy + dy, diameter);
+    }
+  }
+}
+
+function drawRisoNoiseFromForm(p, s, sp, form) {
+  const { silhouette, luma, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+
+  for (const layer of sp.layers) {
+    p.fill(layer.color[0], layer.color[1], layer.color[2], layer.color[3]);
+    const offX = layer.offset[0] * sp.misreg;
+    const offY = layer.offset[1] * sp.misreg;
+
+    for (let y = 0; y < fH; y++) {
+      for (let x = 0; x < fW; x++) {
+        const idx = y * fW + x;
+        if (silhouette[idx] !== 1) continue;
+
+        const l = applyTone(luma[idx], tone);
+
+        let layerDensity = sp.density * layer.densityMult * (1 - l * layer.lumaResponse);
+        if (layerDensity <= 0) continue;
+        if (layerDensity > 1)  layerDensity = 1;
+
+        if (p.random() > layerDensity) continue;
+
+        const jx = p.random(-sp.jitter, sp.jitter) + offX;
+        const jy = p.random(-sp.jitter, sp.jitter) + offY;
+        const dotSize = sp.dotSizeBase * (1 + p.random(-sp.dotSizeVar, sp.dotSizeVar));
+
+        p.circle(x + jx, y + jy, Math.max(0.4, dotSize));
+      }
+    }
+  }
+}
+
+function drawColorBlockingFromForm(p, s, sp, form) {
+  const { silhouette, luma, normals, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+
+  for (let y = 0; y < fH; y++) {
+    for (let x = 0; x < fW; x++) {
+      const idx = y * fW + x;
+      if (silhouette[idx] !== 1) continue;
+
+      const l = applyTone(luma[idx], tone);
+
+      const ni = idx * 3;
+      const nx = normals[ni], ny = normals[ni + 1], nz = normals[ni + 2];
+
+      let color = sp.defaultColor;
+      for (const region of sp.regions) {
+        const dot = nx * region.dirX + ny * region.dirY + nz * region.dirZ;
+        if (dot > region.threshold) {
+          color = region.color;
+          break;
+        }
+      }
+
+      const shadeMod = 1 - l * sp.shading;
+      const density = sp.density * Math.max(0, shadeMod);
+      if (p.random() > density) continue;
+
+      const jx = p.random(-sp.jitter, sp.jitter);
+      const jy = p.random(-sp.jitter, sp.jitter);
+      const dotSize = sp.dotSizeBase * (1 + p.random(-sp.dotSizeVar, sp.dotSizeVar));
+
+      const alpha = color[3] * (1 - l * sp.shading * 0.5);
+      p.fill(color[0], color[1], color[2], Math.max(20, alpha));
+      p.circle(x + jx, y + jy, Math.max(0.4, dotSize));
+    }
+  }
+}
+
+function drawOutlineFromForm(p, s, sp, form) {
+  const { silhouette, W: fW, H: fH } = form;
+  p.noStroke();
+  p.fill(s.inkColor[0], s.inkColor[1], s.inkColor[2], s.inkAlpha);
+
+  const weight = sp.weight;
+  const useJitter = sp.jitter > 0;
+
+  for (let y = 0; y < fH; y++) {
+    for (let x = 0; x < fW; x++) {
+      const idx = y * fW + x;
+      if (silhouette[idx] !== 1) continue;
+
+      const left  = x > 0      ? silhouette[idx - 1]  : 0;
+      const right = x < fW - 1 ? silhouette[idx + 1]  : 0;
+      const up    = y > 0      ? silhouette[idx - fW]  : 0;
+      const down  = y < fH - 1 ? silhouette[idx + fW]  : 0;
+
+      if (left && right && up && down) continue;
+
+      let jx = 0, jy = 0;
+      if (useJitter) {
+        jx = p.random(-sp.jitter, sp.jitter);
+        jy = p.random(-sp.jitter, sp.jitter);
+      }
+
+      p.circle(x + jx, y + jy, weight);
+    }
+  }
+}
+
+/* ---------- Breed: color_cluster helpers ---------- */
+
+function hslToRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r, g, b;
+  if      (h < 60)  { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else              { r = c; g = 0; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, Math.round(l * 100)];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if      (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else                h = ((r - g) / d + 4) / 6;
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function generatePalette(baseH, baseS, baseL, harmony) {
+  const wrap = h => ((h % 360) + 360) % 360;
+  let colors;
+  switch (harmony) {
+    case "complementary":
+      colors = [[baseH, baseS, baseL], [wrap(baseH + 180), baseS, baseL]];
+      break;
+    case "analogous":
+      colors = [[wrap(baseH - 30), baseS, baseL], [baseH, baseS, baseL], [wrap(baseH + 30), baseS, baseL]];
+      break;
+    case "monochromatic":
+      colors = [
+        [baseH, baseS, Math.max(10, baseL - 20)],
+        [baseH, baseS, baseL],
+        [baseH, baseS, Math.min(90, baseL + 20)]
+      ];
+      break;
+    case "triadic":
+      colors = [[baseH, baseS, baseL], [wrap(baseH + 120), baseS, baseL], [wrap(baseH + 240), baseS, baseL]];
+      break;
+    case "tetradic":
+      colors = [[baseH, baseS, baseL], [wrap(baseH + 90), baseS, baseL], [wrap(baseH + 180), baseS, baseL], [wrap(baseH + 270), baseS, baseL]];
+      break;
+    case "accented_analogous":
+      colors = [[wrap(baseH - 30), baseS, baseL], [baseH, baseS, baseL], [wrap(baseH + 30), baseS, baseL], [wrap(baseH + 180), baseS, baseL]];
+      break;
+    default:
+      colors = [[baseH, baseS, baseL]];
+  }
+  return colors.map(([h, s, l]) => hslToRgb(h, s, l));
+}
+
+function updatePalettePreview() {
+  const container = document.getElementById('cc-palette-preview');
+  if (!container) return;
+  const sp = SPECIMEN.breeds.color_cluster;
+  const palette = generatePalette(sp.baseColor[0], sp.baseColor[1], sp.baseColor[2], sp.harmony);
+  container.innerHTML = '';
+  for (const [r, g, b] of palette) {
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = `rgb(${r},${g},${b})`;
+    container.appendChild(sw);
+  }
+  if (sp.darkMix > 0) {
+    const dark = hslToRgb(sp.baseColor[0], sp.baseColor[1], 10);
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = `rgb(${dark[0]},${dark[1]},${dark[2]})`;
+    container.appendChild(sw);
+  }
+}
+
+function pickShape(p, sp) {
+  const total = sp.circlePct + sp.quadPct + sp.trianglePct;
+  if (total <= 0) return "circle";
+  const r = p.random(total);
+  if (r < sp.circlePct) return "circle";
+  if (r < sp.circlePct + sp.quadPct) return "quad";
+  return "triangle";
+}
+
+function buildDistanceField(silhouette, W, H) {
+  const dist = new Float32Array(W * H);
+  const INF = 1e6;
+  for (let i = 0; i < W * H; i++) dist[i] = silhouette[i] === 1 ? 0 : INF;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (dist[i] === 0) continue;
+      if (x > 0)              dist[i] = Math.min(dist[i], dist[i - 1] + 1);
+      if (y > 0)              dist[i] = Math.min(dist[i], dist[(y-1)*W + x] + 1);
+      if (x > 0 && y > 0)    dist[i] = Math.min(dist[i], dist[(y-1)*W + x - 1] + 1.414);
+      if (x < W-1 && y > 0)  dist[i] = Math.min(dist[i], dist[(y-1)*W + x + 1] + 1.414);
+    }
+  }
+  for (let y = H - 1; y >= 0; y--) {
+    for (let x = W - 1; x >= 0; x--) {
+      const i = y * W + x;
+      if (dist[i] === 0) continue;
+      if (x < W-1)              dist[i] = Math.min(dist[i], dist[i + 1] + 1);
+      if (y < H-1)              dist[i] = Math.min(dist[i], dist[(y+1)*W + x] + 1);
+      if (x < W-1 && y < H-1)  dist[i] = Math.min(dist[i], dist[(y+1)*W + x + 1] + 1.414);
+      if (x > 0 && y < H-1)    dist[i] = Math.min(dist[i], dist[(y+1)*W + x - 1] + 1.414);
+    }
+  }
+  return dist;
+}
+
+function drawColorClusterFromForm(p, s, sp, form) {
+  const { silhouette, luma, W: fW, H: fH } = form;
+  const tone = s.tone;
+  p.noStroke();
+
+  const palette = generatePalette(sp.baseColor[0], sp.baseColor[1], sp.baseColor[2], sp.harmony);
+  const darkColor = hslToRgb(sp.baseColor[0], sp.baseColor[1], 10);
+  const alpha = Math.round(sp.opacity * 255);
+  const useNoise = sp.noiseStrength > 0;
+  const useScatter = sp.scatter > 0;
+  const dist = useScatter ? buildDistanceField(silhouette, fW, fH) : null;
+  const maxAttempts = sp.count * 10;
+  let placed = 0;
+
+  for (let attempt = 0; attempt < maxAttempts && placed < sp.count; attempt++) {
+    const x = Math.floor(p.random(fW));
+    const y = Math.floor(p.random(fH));
+    const idx = y * fW + x;
+    const inside = silhouette[idx] === 1;
+
+    if (!inside) {
+      if (!useScatter) continue;
+      const d = dist[idx];
+      if (d > sp.scatter) continue;
+      const falloff = 1 - (d / sp.scatter);
+      if (p.random() > falloff * falloff) continue;
+    }
+
+    if (useNoise) {
+      const n = p.noise(x * sp.noiseFreq, y * sp.noiseFreq);
+      if (p.random() > n * sp.noiseStrength + (1 - sp.noiseStrength)) continue;
+    }
+
+    if (inside && sp.lumaResponse > 0) {
+      const l = applyTone(luma[idx], tone);
+      if (p.random() < l * sp.lumaResponse) continue;
+    }
+
+    const isDark = sp.darkMix > 0 && p.random() < sp.darkMix;
+    const color = isDark ? darkColor : palette[Math.floor(p.random(palette.length))];
+    p.fill(color[0], color[1], color[2], alpha);
+
+    const sizeMult = 1 - sp.sizeVar + p.random() * sp.sizeVar * 2;
+    const markSize = Math.max(0.5, sp.size * sizeMult);
+    const shape = pickShape(p, sp);
+
+    if (shape === "circle") {
+      p.circle(x, y, markSize);
+    } else {
+      const rot = sp.rotation > 0 ? p.random(-sp.rotation, sp.rotation) * Math.PI / 180 : 0;
+      p.push();
+      p.translate(x, y);
+      if (rot !== 0) p.rotate(rot);
+      if (shape === "quad") {
+        const half = markSize / 2;
+        p.rect(-half, -half, markSize, markSize);
+      } else {
+        const r = markSize / 2;
+        p.triangle(0, -r, -r * 0.866, r * 0.5, r * 0.866, r * 0.5);
+      }
+      p.pop();
+    }
+
+    placed++;
+  }
+}
+
+/* ---------- Texture overlays ---------- */
+
+function drawGrainOverlay(p) {
+  p.noStroke();
+  for (let i = 0; i < 850; i++) {
+    p.fill(20, 18, 14, p.random(6, 16));
+    p.rect(p.random(p.width), p.random(p.height), 1, 1);
+  }
+  for (let i = 0; i < 320; i++) {
+    p.fill(248, 244, 236, p.random(18, 46));
+    p.rect(p.random(p.width), p.random(p.height), 1, 1);
+  }
+}
+
+function drawFrameEdge(p) {
+  p.noFill();
+  p.stroke(20, 18, 14, 22);
+  p.strokeWeight(1);
+  p.rect(0.5, 0.5, p.width - 1, p.height - 1);
+}
+
+/* ---------- Update orchestration ---------- */
+
+let _formScheduled = false;
+let _breedScheduled = false;
+
+function scheduleFormUpdate() {
+  if (_formScheduled) return;
+  _formScheduled = true;
+  requestAnimationFrame(() => {
+    _formScheduled = false;
+    renderFormPass();
+    applyPolarity();
+    updateDebugCanvas();
+    updateLumaReadout();
+    scheduleBreedUpdate();
+    updateSpecimenView();
+  });
+}
+
+function scheduleBreedUpdate() {
+  if (_breedScheduled) return;
+  _breedScheduled = true;
+  requestAnimationFrame(() => {
+    _breedScheduled = false;
+    if (myP5) myP5.regenerate();
+    updateToneCurve();
+    updateSpecimenView();
+  });
+}
+
+/* The debug view shows two passes side-by-side: the synthesized luma
+   field and the synthesized normal field (encoded the same way as the
+   3D species: rgb = (n + 1) / 2). When light moves and the curve
+   doesn't, only the luma panel changes; the normals stay the same. */
+function updateDebugCanvas() {
+  const lumaCanvas = document.getElementById('formDebugLuma');
+  const normalCanvas = document.getElementById('formDebugNormals');
+  if (!lumaCanvas || !normalCanvas) return;
+  const lumaCtx = lumaCanvas.getContext('2d');
+  const normalCtx = normalCanvas.getContext('2d');
+  const lumaImg = lumaCtx.createImageData(CANVAS_W, CANVAS_H);
+  const normalImg = normalCtx.createImageData(CANVAS_W, CANVAS_H);
+
+  for (let i = 0; i < CANVAS_W * CANVAS_H; i++) {
+    if (_silhouette[i]) {
+      const v = Math.round(_luma[i] * 255);
+      lumaImg.data[i * 4]     = v;
+      lumaImg.data[i * 4 + 1] = v;
+      lumaImg.data[i * 4 + 2] = v;
+      lumaImg.data[i * 4 + 3] = 255;
+
+      const ni = i * 3;
+      normalImg.data[i * 4]     = Math.round((_normals[ni]     * 0.5 + 0.5) * 255);
+      normalImg.data[i * 4 + 1] = Math.round((_normals[ni + 1] * 0.5 + 0.5) * 255);
+      normalImg.data[i * 4 + 2] = Math.round((_normals[ni + 2] * 0.5 + 0.5) * 255);
+      normalImg.data[i * 4 + 3] = 255;
+    }
+  }
+  lumaCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  lumaCtx.putImageData(lumaImg, 0, 0);
+  normalCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  normalCtx.putImageData(normalImg, 0, 0);
+}
+
+function updateLumaReadout() {
+  const r = document.getElementById('luma-readout');
+  r.textContent = `LUMA ${formData.lumaMin.toFixed(2)} · ${formData.lumaMean.toFixed(2)} · ${formData.lumaMax.toFixed(2)}`;
+}
+
+function updateToneCurve() {
+  const path = document.getElementById('tone-curve-path');
+  if (!path) return;
+  const W = 48, H = 24, N = 32;
+  let d = '';
+  for (let i = 0; i <= N; i++) {
+    const x = i / N;
+    const y = applyTone(x, SPECIMEN.tone);
+    d += (i === 0 ? 'M' : 'L') + (x * W).toFixed(2) + ',' + (H - y * H).toFixed(2) + ' ';
+  }
+  path.setAttribute('d', d.trim());
+}
+
+function updateSpecimenView() {
+  const view = {
+    species:  SPECIMEN.species,
+    breed:    SPECIMEN.breed,
+    geometry: SPECIMEN.geometry,
+    light:    SPECIMEN.light,
+    tone:     SPECIMEN.tone,
+    polarity: SPECIMEN.polarity,
+    fillLuma: SPECIMEN.fillLuma,
+    breeds: { [SPECIMEN.breed]: SPECIMEN.breeds[SPECIMEN.breed] },
+    paperGrain: SPECIMEN.paperGrain,
+    inkColor:   SPECIMEN.inkColor,
+    inkAlpha:   SPECIMEN.inkAlpha,
+    seed:       SPECIMEN.seed
+  };
+  document.getElementById('specimenView').textContent = JSON.stringify(view, null, 2);
+}
+
+/* ---------- Boot ---------- */
+
+renderFormPass();
+applyPolarity();
+myP5 = new p5(sketch);
+updateDebugCanvas();
+updateLumaReadout();
+updateToneCurve();
+updateSpecimenView();
+updatePalettePreview();
+
+/* ---------- Slider wiring ---------- */
+
+function bindSlider(id, valId, fmt, mutate, kind) {
+  const slider = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    mutate(v);
+    valEl.textContent = fmt(v);
+    if (kind === 'form') scheduleFormUpdate();
+    else                 scheduleBreedUpdate();
+  });
+}
+
+const fmt0   = v => v.toFixed(0);
+const fmt1   = v => v.toFixed(1);
+const fmt2   = v => v.toFixed(2);
+const fmt3   = v => v.toFixed(3);
+const fmtDeg = v => `${v.toFixed(1)}°`;
+
+// SHAPE · body
+bindSlider('br-bodyRadius',   'br-bodyRadius-val',   fmt0, v => SPECIMEN.geometry.bodyRadius    = v, 'form');
+bindSlider('br-bodyAspect',   'br-bodyAspect-val',   fmt2, v => SPECIMEN.geometry.bodyAspect    = v, 'form');
+bindSlider('br-bodyVertices', 'br-bodyVertices-val', fmt0, v => SPECIMEN.geometry.bodyVertices  = v, 'form');
+bindSlider('br-bodyDeform',   'br-bodyDeform-val',   fmt2, v => SPECIMEN.geometry.bodyDeform    = v, 'form');
+bindSlider('br-bodyThick',    'br-bodyThick-val',    fmt1, v => SPECIMEN.geometry.bodyThickness = v, 'form');
+
+// SHAPE · spikes
+bindSlider('br-spikeCount',  'br-spikeCount-val',  fmt0, v => SPECIMEN.geometry.spikeCount    = v, 'form');
+bindSlider('br-spikeSeg',    'br-spikeSeg-val',    fmt0, v => SPECIMEN.geometry.spikeSegments = v, 'form');
+bindSlider('br-spikeAngle',  'br-spikeAngle-val',  v => `${v.toFixed(1)}°`, v => SPECIMEN.geometry.spikeAngle = v, 'form');
+bindSlider('br-spikeLen',    'br-spikeLen-val',    fmt0, v => SPECIMEN.geometry.spikeLength   = v, 'form');
+bindSlider('br-spikeVar',    'br-spikeVar-val',    fmt2, v => SPECIMEN.geometry.spikeLenVar   = v, 'form');
+bindSlider('br-spikeThick',  'br-spikeThick-val',  fmt1, v => SPECIMEN.geometry.spikeThick    = v, 'form');
+bindSlider('br-spikeTaper',  'br-spikeTaper-val',  fmt2, v => SPECIMEN.geometry.spikeTaper    = v, 'form');
+
+// LIGHT
+bindSlider('light-x',       'light-x-val',       fmt2, v => SPECIMEN.light.direction[0]  = v, 'form');
+bindSlider('light-y',       'light-y-val',       fmt2, v => SPECIMEN.light.direction[1]  = v, 'form');
+bindSlider('light-z',       'light-z-val',       fmt2, v => SPECIMEN.light.direction[2]  = v, 'form');
+bindSlider('light-key',     'light-key-val',     fmt2, v => SPECIMEN.light.keyIntensity   = v, 'form');
+bindSlider('light-ambient', 'light-ambient-val', fmt2, v => SPECIMEN.light.ambient        = v, 'form');
+
+// TONE
+bindSlider('tone-black', 'tone-black-val', fmt3, v => SPECIMEN.tone.blackPoint = v, 'breed');
+bindSlider('tone-white', 'tone-white-val', fmt3, v => SPECIMEN.tone.whitePoint = v, 'breed');
+bindSlider('tone-gamma', 'tone-gamma-val', fmt2, v => SPECIMEN.tone.gamma      = v, 'breed');
+
+// POLARITY
+document.querySelectorAll('input[name="polarity"]').forEach(r => {
+  r.addEventListener('change', () => {
+    SPECIMEN.polarity = r.value;
+    scheduleFormUpdate();
+  });
+});
+bindSlider('fill-luma', 'fill-luma-val', fmt2, v => { SPECIMEN.fillLuma = v; scheduleFormUpdate(); }, 'form');
+
+// INK
+document.getElementById('ink-color').addEventListener('input', () => {
+  const hex = document.getElementById('ink-color').value;
+  SPECIMEN.inkColor = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  document.getElementById('ink-color-val').textContent = hex.toUpperCase();
+  scheduleBreedUpdate();
+});
+
+// BREED · raster_vertical
+bindSlider('raster-spacing', 'raster-spacing-val', fmt2,
+  v => SPECIMEN.breeds.raster_vertical.spacing = v, 'breed');
+bindSlider('raster-length',  'raster-length-val', fmt1,
+  v => SPECIMEN.breeds.raster_vertical.segmentLen = v, 'breed');
+
+// BREED · stipple
+bindSlider('stipple-density', 'stipple-density-val', fmt3,
+  v => SPECIMEN.breeds.stipple.density = v, 'breed');
+bindSlider('stipple-dotSize', 'stipple-dotSize-val', fmt2,
+  v => SPECIMEN.breeds.stipple.dotSizeBase = v, 'breed');
+bindSlider('stipple-dotVar',  'stipple-dotVar-val',  fmt2,
+  v => SPECIMEN.breeds.stipple.dotSizeVar = v, 'breed');
+
+// BREED · halftone
+bindSlider('ht-cell',     'ht-cell-val',     fmt2, v => SPECIMEN.breeds.halftone.cellSize = v, 'breed');
+bindSlider('ht-dotSize',  'ht-dotSize-val',  fmt2, v => SPECIMEN.breeds.halftone.dotSize  = v, 'breed');
+bindSlider('ht-coverage', 'ht-coverage-val', fmt2, v => SPECIMEN.breeds.halftone.coverage = v, 'breed');
+bindSlider('ht-jitter',   'ht-jitter-val',   fmt2, v => SPECIMEN.breeds.halftone.jitter   = v, 'breed');
+
+// BREED · riso_noise
+bindSlider('riso-density', 'riso-density-val', fmt3,
+  v => SPECIMEN.breeds.riso_noise.density = v, 'breed');
+bindSlider('riso-dotSize', 'riso-dotSize-val', fmt2,
+  v => SPECIMEN.breeds.riso_noise.dotSizeBase = v, 'breed');
+bindSlider('riso-dotVar',  'riso-dotVar-val',  fmt2,
+  v => SPECIMEN.breeds.riso_noise.dotSizeVar = v, 'breed');
+bindSlider('riso-misreg',  'riso-misreg-val',  fmt1,
+  v => SPECIMEN.breeds.riso_noise.misreg = v, 'breed');
+
+// BREED · color_blocking
+bindSlider('cb-density',  'cb-density-val',  fmt3,
+  v => SPECIMEN.breeds.color_blocking.density = v, 'breed');
+bindSlider('cb-dotSize',  'cb-dotSize-val',  fmt2,
+  v => SPECIMEN.breeds.color_blocking.dotSizeBase = v, 'breed');
+bindSlider('cb-shading',  'cb-shading-val',  fmt2,
+  v => SPECIMEN.breeds.color_blocking.shading = v, 'breed');
+
+// BREED · outline
+bindSlider('ol-weight', 'ol-weight-val', fmt1,
+  v => SPECIMEN.breeds.outline.weight = v, 'breed');
+bindSlider('ol-jitter', 'ol-jitter-val', fmt2,
+  v => SPECIMEN.breeds.outline.jitter = v, 'breed');
+
+// BREED · color_cluster
+bindSlider('cc-count', 'cc-count-val', v => v.toFixed(0),
+  v => SPECIMEN.breeds.color_cluster.count = v, 'breed');
+bindSlider('cc-size', 'cc-size-val', fmt1,
+  v => SPECIMEN.breeds.color_cluster.size = v, 'breed');
+bindSlider('cc-sizeVar', 'cc-sizeVar-val', fmt2,
+  v => SPECIMEN.breeds.color_cluster.sizeVar = v, 'breed');
+bindSlider('cc-circlePct', 'cc-circlePct-val', fmt0,
+  v => SPECIMEN.breeds.color_cluster.circlePct = v, 'breed');
+bindSlider('cc-quadPct', 'cc-quadPct-val', fmt0,
+  v => SPECIMEN.breeds.color_cluster.quadPct = v, 'breed');
+bindSlider('cc-trianglePct', 'cc-trianglePct-val', fmt0,
+  v => SPECIMEN.breeds.color_cluster.trianglePct = v, 'breed');
+bindSlider('cc-rotation', 'cc-rotation-val', fmtDeg,
+  v => SPECIMEN.breeds.color_cluster.rotation = v, 'breed');
+bindSlider('cc-opacity', 'cc-opacity-val', fmt2,
+  v => SPECIMEN.breeds.color_cluster.opacity = v, 'breed');
+bindSlider('cc-darkMix', 'cc-darkMix-val', fmt2,
+  v => { SPECIMEN.breeds.color_cluster.darkMix = v; updatePalettePreview(); }, 'breed');
+bindSlider('cc-lumaResponse', 'cc-lumaResponse-val', fmt2,
+  v => SPECIMEN.breeds.color_cluster.lumaResponse = v, 'breed');
+bindSlider('cc-noiseFreq', 'cc-noiseFreq-val', fmt3,
+  v => SPECIMEN.breeds.color_cluster.noiseFreq = v, 'breed');
+bindSlider('cc-noiseStrength', 'cc-noiseStrength-val', fmt2,
+  v => SPECIMEN.breeds.color_cluster.noiseStrength = v, 'breed');
+bindSlider('cc-scatter', 'cc-scatter-val', fmt0,
+  v => SPECIMEN.breeds.color_cluster.scatter = v, 'breed');
+
+document.getElementById('cc-baseColor').addEventListener('input', () => {
+  const hex = document.getElementById('cc-baseColor').value;
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  SPECIMEN.breeds.color_cluster.baseColor = rgbToHsl(r, g, b);
+  document.getElementById('cc-baseColor-val').textContent = hex.toUpperCase();
+  updatePalettePreview();
+  scheduleBreedUpdate();
+});
+
+document.querySelectorAll('input[name="cc-harmony"]').forEach(r => {
+  r.addEventListener('change', () => {
+    SPECIMEN.breeds.color_cluster.harmony = r.value;
+    updatePalettePreview();
+    scheduleBreedUpdate();
+  });
+});
+
+/* ---------- Breed selector ---------- */
+
+function setBreed(breedName) {
+  SPECIMEN.breed = breedName;
+  document.querySelectorAll('input[name="breed"]').forEach(r => {
+    r.checked = r.value === breedName;
+  });
+  document.querySelectorAll('.breed-params').forEach(el => {
+    el.classList.toggle('active', el.id === `params-${breedName}`);
+  });
+  scheduleBreedUpdate();
+}
+
+document.querySelectorAll('input[name="breed"]').forEach(r => {
+  r.addEventListener('change', () => setBreed(r.value));
+});
+
+/* ---------- Buttons ---------- */
+
+document.getElementById('reseedCurve').addEventListener('click', () => {
+  SPECIMEN.geometry.seed = Math.floor(Math.random() * 100000);
+  scheduleFormUpdate();
+});
+
+document.getElementById('reseedBreed').addEventListener('click', () => {
+  currentSeed = Math.floor(Math.random() * 100000);
+  SPECIMEN.seed = currentSeed;
+  scheduleBreedUpdate();
+});
+
+document.getElementById('savePng').addEventListener('click', () => {
+  myP5.savePng();
+});
+
+document.getElementById('toggleDebug').addEventListener('click', (e) => {
+  const dbg = document.getElementById('formDebug');
+  if (dbg.style.display === 'none' || !dbg.style.display) {
+    dbg.style.display = 'block';
+    e.target.textContent = 'HIDE FORM SOURCE';
+  } else {
+    dbg.style.display = 'none';
+    e.target.textContent = 'SHOW FORM SOURCE';
+  }
+});
+
+document.getElementById('auto-levels').addEventListener('click', () => {
+  const pad = 0.005;
+  const newBlack = Math.max(0, formData.lumaMin - pad);
+  const newWhite = Math.min(1, formData.lumaMax + pad);
+  SPECIMEN.tone.blackPoint = newBlack;
+  SPECIMEN.tone.whitePoint = newWhite;
+
+  document.getElementById('tone-black').value = newBlack;
+  document.getElementById('tone-black-val').textContent = fmt3(newBlack);
+  document.getElementById('tone-white').value = newWhite;
+  document.getElementById('tone-white-val').textContent = fmt3(newWhite);
+
+  scheduleBreedUpdate();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  Object.assign(SPECIMEN.geometry, DEFAULTS.geometry);
+  SPECIMEN.light.direction    = [...DEFAULTS.light.direction];
+  SPECIMEN.light.keyIntensity = DEFAULTS.light.keyIntensity;
+  SPECIMEN.light.ambient      = DEFAULTS.light.ambient;
+  Object.assign(SPECIMEN.tone, DEFAULTS.tone);
+  SPECIMEN.polarity = DEFAULTS.polarity;
+  SPECIMEN.fillLuma = DEFAULTS.fillLuma;
+  SPECIMEN.inkColor = [...DEFAULTS.inkColor];
+  Object.assign(SPECIMEN.breeds.raster_vertical, DEFAULTS.breeds.raster_vertical);
+  Object.assign(SPECIMEN.breeds.stipple,         DEFAULTS.breeds.stipple);
+  Object.assign(SPECIMEN.breeds.halftone,        DEFAULTS.breeds.halftone);
+  SPECIMEN.breeds.riso_noise.density     = DEFAULTS.breeds.riso_noise.density;
+  SPECIMEN.breeds.riso_noise.dotSizeBase = DEFAULTS.breeds.riso_noise.dotSizeBase;
+  SPECIMEN.breeds.riso_noise.dotSizeVar  = DEFAULTS.breeds.riso_noise.dotSizeVar;
+  SPECIMEN.breeds.riso_noise.jitter      = DEFAULTS.breeds.riso_noise.jitter;
+  SPECIMEN.breeds.riso_noise.misreg      = DEFAULTS.breeds.riso_noise.misreg;
+  Object.assign(SPECIMEN.breeds.color_blocking, {
+    density:     DEFAULTS.breeds.color_blocking.density,
+    dotSizeBase: DEFAULTS.breeds.color_blocking.dotSizeBase,
+    dotSizeVar:  DEFAULTS.breeds.color_blocking.dotSizeVar,
+    jitter:      DEFAULTS.breeds.color_blocking.jitter,
+    shading:     DEFAULTS.breeds.color_blocking.shading
+  });
+  SPECIMEN.breed = DEFAULTS.breed;
+
+  const set = (id, valId, value, fmt) => {
+    document.getElementById(id).value = value;
+    document.getElementById(valId).textContent = fmt(value);
+  };
+  set('br-bodyRadius',   'br-bodyRadius-val',   DEFAULTS.geometry.bodyRadius,    fmt0);
+  set('br-bodyAspect',   'br-bodyAspect-val',   DEFAULTS.geometry.bodyAspect,    fmt2);
+  set('br-bodyVertices', 'br-bodyVertices-val', DEFAULTS.geometry.bodyVertices,  fmt0);
+  set('br-bodyDeform',   'br-bodyDeform-val',   DEFAULTS.geometry.bodyDeform,    fmt2);
+  set('br-bodyThick',    'br-bodyThick-val',    DEFAULTS.geometry.bodyThickness, fmt1);
+  set('br-spikeCount',   'br-spikeCount-val',   DEFAULTS.geometry.spikeCount,    fmt0);
+  set('br-spikeSeg',     'br-spikeSeg-val',     DEFAULTS.geometry.spikeSegments, fmt0);
+  set('br-spikeAngle',   'br-spikeAngle-val',   DEFAULTS.geometry.spikeAngle,    v => `${v.toFixed(1)}°`);
+  set('br-spikeLen',     'br-spikeLen-val',     DEFAULTS.geometry.spikeLength,   fmt0);
+  set('br-spikeVar',     'br-spikeVar-val',     DEFAULTS.geometry.spikeLenVar,   fmt2);
+  set('br-spikeThick',   'br-spikeThick-val',   DEFAULTS.geometry.spikeThick,    fmt1);
+  set('br-spikeTaper',   'br-spikeTaper-val',   DEFAULTS.geometry.spikeTaper,    fmt2);
+  set('light-x',        'light-x-val',        DEFAULTS.light.direction[0],   fmt2);
+  set('light-y',        'light-y-val',        DEFAULTS.light.direction[1],   fmt2);
+  set('light-z',        'light-z-val',        DEFAULTS.light.direction[2],   fmt2);
+  set('light-key',      'light-key-val',      DEFAULTS.light.keyIntensity,   fmt2);
+  set('light-ambient',  'light-ambient-val',  DEFAULTS.light.ambient,        fmt2);
+  set('tone-black',     'tone-black-val',     DEFAULTS.tone.blackPoint,      fmt3);
+  set('tone-white',     'tone-white-val',     DEFAULTS.tone.whitePoint,      fmt3);
+  set('tone-gamma',     'tone-gamma-val',     DEFAULTS.tone.gamma,           fmt2);
+  set('fill-luma', 'fill-luma-val', DEFAULTS.fillLuma, fmt2);
+  document.querySelectorAll('input[name="polarity"]').forEach(r => {
+    r.checked = r.value === DEFAULTS.polarity;
+  });
+  const inkHex = '#' + DEFAULTS.inkColor.map(c => c.toString(16).padStart(2,'0')).join('');
+  document.getElementById('ink-color').value = inkHex;
+  document.getElementById('ink-color-val').textContent = inkHex.toUpperCase();
+  set('raster-spacing', 'raster-spacing-val', DEFAULTS.breeds.raster_vertical.spacing,    fmt2);
+  set('raster-length',  'raster-length-val',  DEFAULTS.breeds.raster_vertical.segmentLen, fmt1);
+  set('stipple-density','stipple-density-val',DEFAULTS.breeds.stipple.density,            fmt3);
+  set('stipple-dotSize','stipple-dotSize-val',DEFAULTS.breeds.stipple.dotSizeBase,        fmt2);
+  set('stipple-dotVar', 'stipple-dotVar-val', DEFAULTS.breeds.stipple.dotSizeVar,         fmt2);
+  set('ht-cell',        'ht-cell-val',        DEFAULTS.breeds.halftone.cellSize,          fmt2);
+  set('ht-dotSize',     'ht-dotSize-val',     DEFAULTS.breeds.halftone.dotSize,           fmt2);
+  set('ht-coverage',    'ht-coverage-val',    DEFAULTS.breeds.halftone.coverage,          fmt2);
+  set('ht-jitter',      'ht-jitter-val',      DEFAULTS.breeds.halftone.jitter,            fmt2);
+  set('riso-density',   'riso-density-val',   DEFAULTS.breeds.riso_noise.density,         fmt3);
+  set('riso-dotSize',   'riso-dotSize-val',   DEFAULTS.breeds.riso_noise.dotSizeBase,     fmt2);
+  set('riso-dotVar',    'riso-dotVar-val',    DEFAULTS.breeds.riso_noise.dotSizeVar,      fmt2);
+  set('riso-misreg',    'riso-misreg-val',    DEFAULTS.breeds.riso_noise.misreg,          fmt1);
+  set('cb-density',     'cb-density-val',     DEFAULTS.breeds.color_blocking.density,     fmt3);
+  set('cb-dotSize',     'cb-dotSize-val',     DEFAULTS.breeds.color_blocking.dotSizeBase, fmt2);
+  set('cb-shading',     'cb-shading-val',     DEFAULTS.breeds.color_blocking.shading,     fmt2);
+  Object.assign(SPECIMEN.breeds.outline, DEFAULTS.breeds.outline);
+  set('ol-weight',      'ol-weight-val',      DEFAULTS.breeds.outline.weight,             fmt1);
+  set('ol-jitter',      'ol-jitter-val',      DEFAULTS.breeds.outline.jitter,             fmt2);
+
+  SPECIMEN.breeds.color_cluster = JSON.parse(JSON.stringify(DEFAULTS.breeds.color_cluster));
+  set('cc-count',          'cc-count-val',          DEFAULTS.breeds.color_cluster.count, v => v.toFixed(0));
+  set('cc-size',           'cc-size-val',           DEFAULTS.breeds.color_cluster.size,  fmt1);
+  set('cc-sizeVar',        'cc-sizeVar-val',        DEFAULTS.breeds.color_cluster.sizeVar, fmt2);
+  set('cc-circlePct',      'cc-circlePct-val',      DEFAULTS.breeds.color_cluster.circlePct, fmt0);
+  set('cc-quadPct',        'cc-quadPct-val',        DEFAULTS.breeds.color_cluster.quadPct, fmt0);
+  set('cc-trianglePct',    'cc-trianglePct-val',    DEFAULTS.breeds.color_cluster.trianglePct, fmt0);
+  set('cc-rotation',       'cc-rotation-val',       DEFAULTS.breeds.color_cluster.rotation, fmtDeg);
+  set('cc-opacity',        'cc-opacity-val',        DEFAULTS.breeds.color_cluster.opacity, fmt2);
+  set('cc-darkMix',        'cc-darkMix-val',        DEFAULTS.breeds.color_cluster.darkMix, fmt2);
+  set('cc-lumaResponse',   'cc-lumaResponse-val',   DEFAULTS.breeds.color_cluster.lumaResponse, fmt2);
+  set('cc-noiseFreq',      'cc-noiseFreq-val',      DEFAULTS.breeds.color_cluster.noiseFreq, fmt3);
+  set('cc-noiseStrength',  'cc-noiseStrength-val',  DEFAULTS.breeds.color_cluster.noiseStrength, fmt2);
+  set('cc-scatter',        'cc-scatter-val',        DEFAULTS.breeds.color_cluster.scatter, fmt0);
+  const ccBaseRgb = hslToRgb(DEFAULTS.breeds.color_cluster.baseColor[0], DEFAULTS.breeds.color_cluster.baseColor[1], DEFAULTS.breeds.color_cluster.baseColor[2]);
+  const ccHex = '#' + ccBaseRgb.map(c => c.toString(16).padStart(2,'0')).join('');
+  document.getElementById('cc-baseColor').value = ccHex;
+  document.getElementById('cc-baseColor-val').textContent = ccHex.toUpperCase();
+  document.querySelectorAll('input[name="cc-harmony"]').forEach(r => {
+    r.checked = r.value === DEFAULTS.breeds.color_cluster.harmony;
+  });
+  updatePalettePreview();
+
+  setBreed(DEFAULTS.breed);
+  scheduleFormUpdate();
+});
+</script>
+
+</body>
+</html>
