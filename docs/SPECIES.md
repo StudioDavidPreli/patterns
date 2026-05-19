@@ -331,16 +331,66 @@ Skipped (2026-05-18). Degenerate case of pinwheel (zero hub radius, zero spoke w
 ### ~~cluster~~ (dissolved)
 Dissolved as a species (2026-05-18). All 17 reference shapes reclassified: the underlying forms are existing species (torus, ring, block, cylinder, synapse) or new species (anemone, agglomerate, basalt, pinwheel). The mark-scattering visual is a breed concern (color cluster, dot matrix).
 
-## Planned (later)
-
 ### agglomerate
-**Reference:** SHAPE-25, 80. Irregular spheres clustered together. Two reference shapes. Identified during cluster reclassification.
+
+**Reference:** SHAPE-25, 80. Irregular spheres clustered together.
+**Status:** built · `species/specimen_agglomerate_v1.html`
+**Type:** 2D-native (no three.js)
+**Implementation:** N circles placed within a circular spread radius using seeded random positions and sizes. Each circle drawn to an offscreen canvas, alpha readback for silhouette. Per-sphere dome normals: for each silhouette pixel, find the sphere with the smallest normalized distance (dist / radius), compute dome normal relative to that sphere's center. Lambert shading against shared light.
+
+**Parameters:**
+- `spheres` -- sphere count (3 to 40, default 15)
+- `spread` -- placement radius (0 to 300, default 120)
+- `sphereSize` -- base sphere radius (8 to 120, default 35)
+- `sizeVar` -- size variation (0 to 1, default 0.50)
+- `rotation` -- degrees (-180 to 180, default 0)
+
+**Notes:** Two seeds: geomSeed (sphere placement/sizes) and seed (breed). Per-sphere dome normals are distinct from anemone's single-centroid dome: each sphere lights independently, so overlapping spheres show distinct shading. All seven breeds wired.
 
 ### concentric
-Nested rings or shapes. Combines easily with ring or disc as a layered form.
+
+**Reference:** Nested rings. No specific SHAPE-XX.
+**Status:** built · `species/specimen_concentric_v1.html`
+**Type:** 2D-native (no three.js)
+**Implementation:** N ring bands generated outside-in with configurable width and gap. Each ring drawn as an annulus (ellipse pair: outer CW, inner CCW) to an offscreen canvas. Tilt control foreshortens circles into ellipses (2.5D projection). Per-ring tube normals: torus cross-section model where `t = (dist - innerR) / bandWidth` maps across the band, `angle = (t - 0.5) * PI`, radial component = `sin(angle)`, face-on component = `cos(angle)`. Normals transformed through tilt rotation matrix to screen space. Ring offset control gives each ring a seeded random tilt axis deviation for gyroscopic/armillary forms.
+
+**Parameters:**
+- `rings` -- ring count (1 to 10, default 4)
+- `outerRadius` -- outer edge of outermost ring (50 to 250, default 180)
+- `ringWidth` -- width of each ring band (5 to 60, default 22)
+- `gap` -- space between adjacent rings (0 to 40, default 12)
+- `tilt` -- viewing angle of ring plane (0 to 75, default 30). 0 = top-down circles, higher = ellipses
+- `rotation` -- tilt axis orientation (-180 to 180, default 0). Visible when tilt > 0
+- `ringOffset` -- per-ring tilt axis deviation (0 to 90, default 0). Seeded by geomSeed. 0 = all rings share one axis. Higher values = each ring on its own axis (gyroscopic)
+
+**Normal model:** Per-ring tube cross-section. Each ring is treated as a torus viewed from above (or at an angle when tilted). The tube normal varies across the band width: face-on at the center strip, radially outward/inward at the edges. With tilt, the normals are rotated through the ring plane's basis vectors (tilt axis e1, foreshortened perpendicular e2, plane normal). Each ring can have its own tilt axis when ring offset > 0.
+
+**Notes:** Two seeds: geomSeed (ring axis offsets) and seed (breed). At ring offset 0, geomSeed has no effect (geometry is deterministic). All seven breeds wired. Distinct from disc species: disc is 3D extruded with flat-face normals, concentric is 2D-native with tube normals and per-ring axis control.
 
 ### eye
-Hybrid. Concentric structure with a depth element. Lower priority; might be a composition of simpler species rather than its own.
+
+**Reference:** Anatomical eye. No specific SHAPE-XX.
+**Status:** built · `species/specimen_eye_v1.html`
+**Type:** 2D-native (no three.js)
+**Implementation:** Almond silhouette from two quadratic bezier curves (upper lid, lower lid at 65% of upper height) meeting at corner points. Rotation via canvas transform. Two-zone normal/luma model: sclera (shallow dome from boundary distance map, 720-bin radial sweep, 0.6 scaling factor), iris (steep dome from iris center, configurable bulge). Pupil is negative space (excluded from silhouette). Iris/pupil center offset by gaze controls.
+
+**Parameters:**
+- `width` -- eye width corner to corner (100 to 400, default 260)
+- `opening` -- lid separation as fraction of half-width (0.10 to 0.80, default 0.55)
+- `irisR` -- iris radius (10 to 120, default 55)
+- `pupilR` -- pupil radius (3 to 60, default 22)
+- `gazeX` -- horizontal iris offset (-80 to 80, default 0)
+- `gazeY` -- vertical iris offset (-40 to 40, default 0)
+- `bulge` -- iris dome steepness (0.2 to 2.5, default 1.40)
+- `rotation` -- eye rotation in degrees (-180 to 180, default 0)
+
+**Normal model:** Two-zone with negative space. Sclera uses boundary distance (same 720-bin radial sweep as blob) with a 0.6 scaling factor for shallow curvature. Iris uses a dome from the iris center with distance scaled by bulge for configurable steepness, luma darkened to 55%. Pupil is excluded from the silhouette entirely (negative space), so no breed draws marks there. Zone boundaries are hard: pupilR and irisR circles centered at (gazeX, gazeY) relative to eye center.
+
+**Notes:** Two seeds: geomSeed (unused, geometry is deterministic) and seed (breed). Gaze moves the iris/pupil within the sclera. Rotation rotates the entire almond shape. All seven breeds wired.
+
+## Planned (later)
+
+(none remaining)
 
 ## Authoring notes
 

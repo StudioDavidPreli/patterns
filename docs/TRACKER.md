@@ -2,7 +2,7 @@
 
 Snapshot of current state. Updated after meaningful changes. If this file conflicts with the code, the code wins.
 
-Last updated: 2026-05-18. **Sixteen species, seven breeds.** Five new species built: star, block, basalt, pinwheel, anemone. Ring and radial skipped (redundant with disc inner radius and pinwheel respectively).
+Last updated: 2026-05-19. **Nineteen species, seven breeds.** Three new species built: agglomerate, concentric, eye.
 
 Note on locations: specimen test files live under `species/`, not the repo root as some prose in README.md and CLAUDE.md still says. The discrepancy is documentation lag, not a layout decision pending. Treat `species/` as authoritative.
 
@@ -28,11 +28,11 @@ Note on locations: specimen test files live under `species/`, not the repo root 
 | basalt | built | species/specimen_basalt_v1.html | 3D primitive | SHAPE-82. Grid of merged box columns with seeded random heights. Manual geometry merge (concatenated Float32Arrays). Two seeds (geom + breed). All seven breeds. |
 | pinwheel | built | species/specimen_pinwheel_v1.html | 2D-native | SHAPE-117. Hub + N curved tapered spokes (quadratic bezier). Hub inner radius for center holes. Dome normal model. Two seeds. All seven breeds. |
 | anemone | built | species/specimen_anemone_v1.html | 2D-native | SHAPE-05, 09, 58. Cluster of N organic cells (Catmull-Rom smoothed random polygons) or cubic cells (randomly rotated rectangles). Organic/cubic % distribution. Dome normal model. Two seeds. All seven breeds. |
+| agglomerate | built | species/specimen_agglomerate_v1.html | 2D-native | SHAPE-25, 80. N circles with seeded random positions/sizes. Per-sphere dome normals (smallest normalized distance wins). Two seeds. All seven breeds. |
+| concentric | built | species/specimen_concentric_v1.html | 2D-native | Nested rings with 2.5D projection. Per-ring tube normals (torus cross-section). Tilt + rotation for ellipse foreshortening. Seeded per-ring tilt axis offset for gyroscopic forms. Two seeds. All seven breeds. |
 | ring | skipped | — | — | Redundant with disc inner radius. Disc with innerRadius > 0 produces the same silhouette; only difference would be dome vs flat normals. |
 | radial | skipped | — | — | Degenerate case of pinwheel (zero hub, zero spoke width, no curl). Pinwheel is the more useful species. |
-| agglomerate | planned | — | 2D-native | SHAPE-25, 80. Irregular clustered spheres. |
-| concentric | planned | — | 2D-native | Nested rings. |
-| eye | planned | — | hybrid | Lower priority. |
+| eye | built | species/specimen_eye_v1.html | 2D-native | Almond silhouette, two-zone normals (sclera dome, iris dome) with negative-space pupil. Gaze, bulge, rotation controls. Two seeds. All seven breeds. |
 
 ## Breeds
 
@@ -59,12 +59,14 @@ Note on locations: specimen test files live under `species/`, not the repo root 
 
 ## Now
 
-**Sixteen species, seven breeds. Negative polarity on all species. Sidebar layout on all species.** Reference set review completed 2026-05-13.
+**Nineteen species, seven breeds. Negative polarity on all species. Sidebar layout on all species.** Reference set review completed 2026-05-13. All planned species now built.
 
 Adjacent open work, ready to pick up independently:
 - ~~**Ink color parameter**~~: Done (2026-05-17). Specimen-level `inkColor: [r, g, b]` with color picker UI. All nine built species.
 - ~~**Color cluster breed**~~: Done (2026-05-18). HSL harmony palettes, shape mix, Perlin noise density, chamfer distance scatter. All eleven species.
-- **New species** from the remaining planned list (concentric, agglomerate, eye).
+- ~~**Agglomerate species**~~: Done (2026-05-19). Per-sphere dome normals.
+- ~~**Concentric species**~~: Done (2026-05-19). Per-ring tube normals, tilt/rotation, seeded ring offset.
+- ~~**Eye species**~~: Done (2026-05-19). Three-zone normals (sclera dome, iris dome, flat pupil), gaze controls, bulge, rotation. All planned species complete.
 - **New breeds**: dot matrix (5 ref shapes), mycelium, blues.
 
 ## Soon
@@ -105,6 +107,8 @@ Adjacent open work, ready to pick up independently:
 
 ## Recent changes
 
+- 2026-05-19: AGGLOMERATE species built (specimen_agglomerate_v1.html). 2D-native. SHAPE-25, 80. N circles with seeded random positions and sizes within a spread radius. Per-sphere dome normals: each silhouette pixel finds the sphere with the smallest normalized distance (dist/radius) and computes a dome normal relative to that sphere's center. Distinct from anemone's single-centroid dome (each sphere lights independently). 5 SHAPE controls (spheres, spread, sphereSize, sizeVar, rotation). Two seeds. All seven breeds. Sidebar layout. Negative polarity.
+- 2026-05-19: CONCENTRIC species built (specimen_concentric_v1.html). 2D-native. Nested rings with 2.5D projection. Rings drawn as ellipses via `ctx.ellipse()` with tilt foreshortening. Per-ring tube normals: torus cross-section model with radial sin/cos components, transformed through tilt rotation matrix to screen space. Three 3D controls: tilt (0-75, circles to ellipses), rotation (-180 to 180, tilt axis orientation), ring offset (0-90, seeded per-ring tilt axis deviation for gyroscopic/armillary forms). 7 SHAPE controls (rings, outerRadius, ringWidth, gap, tilt, rotation, ringOffset). Two seeds. All seven breeds. Sidebar layout. Negative polarity.
 - 2026-05-18: FIVE NEW SPECIES built. Star (2D-native, N-pointed polygon with optional seeded turbulence noise on boundary, dome normal model). Block (3D, BoxGeometry, two-pass rendering, six-face color_blocking). Basalt (3D, SHAPE-82, grid of merged box columns with seeded random heights, manual geometry merge via concatenated Float32Arrays). Pinwheel (2D-native, SHAPE-117, hub + N curved tapered spokes via quadratic bezier, hub inner radius for center holes, dome normal model). Anemone (2D-native, SHAPE-05/09/58, cluster of N organic Catmull-Rom cells or cubic randomly-rotated rectangles, organic/cubic % distribution, dome normal model). Ring skipped (redundant with disc innerRadius). Radial skipped (degenerate case of pinwheel). All five new species have all seven breeds, two seeds (form + breed), sidebar layout, negative polarity.
 - 2026-05-18: COLOR CLUSTER breed built and propagated to all eleven species. HSL harmony palettes (6 modes: complementary, analogous, triadic, split-complementary, tetradic, monochromatic). Shape mix via population weight sliders (circle/quad/triangle percentages, mixed output when multiple nonzero). Perlin noise density modulation (noiseFreq + noiseStrength create clump/void zones). Chamfer distance field scatter (marks placed outside silhouette with quadratic falloff). Luma response for inside-silhouette density variation. 15 parameters. Key functions: `pickShape()`, `buildDistanceField()`, `drawColorClusterFromForm()`. Prototyped on torus, then propagated to all remaining species.
 - 2026-05-18: SIDEBAR LAYOUT applied to all eleven species. Two-column: 380px scrollable sidebar (left) with controls, flexible canvas area (right) with centered artwork. Controls scroll independently from artwork. Applied during color_cluster propagation.
