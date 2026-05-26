@@ -152,6 +152,25 @@ Scatter places marks outside the silhouette boundary using a chamfer distance fi
 
 **Suited species:** any. Does not require normals. Scatter extends marks beyond the silhouette, allowing more visual mileage from simple primitives without requiring new geometries.
 
+### dot_matrix
+
+**Consumes:** silhouette
+**Primitive:** equal-size marks (circle or rectangle) on a canvas-aligned grid, gated by Perlin noise density
+
+Walks a canvas-aligned grid stepping by `cellSize`. At each cell center, checks the silhouette; if inside, optionally checks Perlin noise against `noiseStrength` to cull marks in low-noise zones, creating organic clump/void patterns. Surviving cells get one mark at the cell center (plus optional jitter). Two glyph modes: dot (circle) and block (rect), selectable via radio. At `noiseStrength: 0` every grid cell inside the silhouette gets a mark (uniform matrix).
+
+Does not consume luma or normals. Uses `inkColor`.
+
+**Parameters:**
+- `cellSize` — grid pitch in pixels (3 to 18, default 5)
+- `markSize` — mark diameter as fraction of cellSize (0.20 to 1.00, default 0.70)
+- `glyph` — `"dot"` (circle) or `"block"` (rect), default `"dot"`
+- `noiseFreq` — Perlin noise frequency (0.002 to 0.10, default 0.015)
+- `noiseStrength` — noise gate threshold (0 to 1, default 0.60). Marks where `p.noise(cx * noiseFreq, cy * noiseFreq)` falls below this value are culled. Higher = more voids.
+- `jitter` — random position offset per mark (0 to 1.5, default 0.00)
+
+**Suited species:** any. Silhouette-only consumer; works on all species regardless of normals or luma availability.
+
 ## Planned (later)
 
 From the original taxonomy of 13 breeds in the SHAPE source reference set. Order is rough.

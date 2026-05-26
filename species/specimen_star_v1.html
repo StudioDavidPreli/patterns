@@ -191,6 +191,11 @@
   #params-color_cluster.active {
     display: flex; flex-direction: column; gap: 10px;
   }
+  #params-dot_matrix.active {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
   .cc-radio-row {
     display: flex; gap: 12px; align-items: center;
     flex-wrap: wrap; font-size: 9.5px; letter-spacing: 0.1em;
@@ -418,6 +423,10 @@
         <input type="radio" name="breed" value="color_cluster">
         <span>COLOR CLUSTER</span>
       </label>
+      <label class="breed-radio">
+        <input type="radio" name="breed" value="dot_matrix">
+        <span>DOT MATRIX</span>
+      </label>
     </div>
 
     <div class="panel-grid breed-params" id="params-raster_vertical">
@@ -612,6 +621,41 @@
         </label>
       </div>
     </div>
+
+    <div class="breed-params" id="params-dot_matrix">
+      <div class="dm-glyph-row" style="display:flex;gap:12px;align-items:center;font-size:9.5px;letter-spacing:0.1em;margin-bottom:4px;">
+        <span class="name">GLYPH</span>
+        <label class="breed-radio"><input type="radio" name="dm-glyph" value="dot" checked><span>DOT</span></label>
+        <label class="breed-radio"><input type="radio" name="dm-glyph" value="block"><span>BLOCK</span></label>
+      </div>
+      <div class="panel-grid">
+      <label>
+        <span class="name">CELL SIZE</span>
+        <input type="range" id="dm-cell" min="3" max="18" step="0.25" value="5">
+        <span class="val" id="dm-cell-val">5.00</span>
+      </label>
+      <label>
+        <span class="name">MARK SIZE</span>
+        <input type="range" id="dm-markSize" min="0.20" max="1.00" step="0.01" value="0.70">
+        <span class="val" id="dm-markSize-val">0.70</span>
+      </label>
+      <label>
+        <span class="name">NOISE FREQ</span>
+        <input type="range" id="dm-noiseFreq" min="0.002" max="0.10" step="0.002" value="0.015">
+        <span class="val" id="dm-noiseFreq-val">0.015</span>
+      </label>
+      <label>
+        <span class="name">NOISE STR</span>
+        <input type="range" id="dm-noiseStrength" min="0" max="1.0" step="0.02" value="0.60">
+        <span class="val" id="dm-noiseStrength-val">0.60</span>
+      </label>
+      <label>
+        <span class="name">JITTER</span>
+        <input type="range" id="dm-jitter" min="0" max="1.5" step="0.01" value="0.00">
+        <span class="val" id="dm-jitter-val">0.00</span>
+      </label>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -699,6 +743,14 @@ const DEFAULTS = {
       baseColor: [0, 60, 50], harmony: "triadic",
       darkMix: 0.0, lumaResponse: 0.0,
       noiseFreq: 0.02, noiseStrength: 0.0, scatter: 0
+    },
+    dot_matrix: {
+      cellSize:       5,
+      markSize:       0.70,
+      glyph:          "dot",
+      noiseFreq:      0.015,
+      noiseStrength:  0.60,
+      jitter:         0.00
     }
   },
 
@@ -1017,6 +1069,7 @@ function drawBreedFromForm(p, s, form) {
   else if (s.breed === "color_blocking")  drawColorBlockingFromForm(p, s, params, form);
   else if (s.breed === "outline")         drawOutlineFromForm(p, s, params, form);
   else if (s.breed === "color_cluster")   drawColorClusterFromForm(p, s, params, form);
+  else if (s.breed === "dot_matrix")    drawDotMatrixFromForm(p, s, params, form);
 }
 
 function drawRasterFromForm(p, s, sp, form) {
@@ -1658,6 +1711,69 @@ document.querySelectorAll('input[name="cc-harmony"]').forEach(r => {
   });
 });
 
+
+/* ---------- Breed: dot matrix ---------- */
+
+function drawDotMatrixFromForm(p, s, sp, form) {
+  const { silhouette, W: fW, H: fH } = form;
+  p.noStroke();
+  p.fill(s.inkColor[0], s.inkColor[1], s.inkColor[2], s.inkAlpha);
+
+  const cell = Math.max(1, sp.cellSize);
+  const halfCell = cell * 0.5;
+  const markDim = cell * sp.markSize;
+  const useNoise = sp.noiseStrength > 0;
+  const useJitter = sp.jitter > 0;
+  const isDot = sp.glyph === "dot";
+
+  for (let cy = halfCell; cy < fH; cy += cell) {
+    for (let cx = halfCell; cx < fW; cx += cell) {
+      const fx = Math.floor(cx);
+      const fy = Math.floor(cy);
+      if (fx < 0 || fx >= fW || fy < 0 || fy >= fH) continue;
+      if (silhouette[fy * fW + fx] !== 1) continue;
+
+      if (useNoise) {
+        const n = p.noise(cx * sp.noiseFreq, cy * sp.noiseFreq);
+        if (n < sp.noiseStrength) continue;
+      }
+
+      let dx = 0, dy = 0;
+      if (useJitter) {
+        dx = p.random(-sp.jitter, sp.jitter);
+        dy = p.random(-sp.jitter, sp.jitter);
+      }
+
+      if (isDot) {
+        p.circle(cx + dx, cy + dy, markDim);
+      } else {
+        const half = markDim / 2;
+        p.rect(cx + dx - half, cy + dy - half, markDim, markDim);
+      }
+    }
+  }
+}
+
+
+// BREED · dot_matrix
+bindSlider('dm-cell', 'dm-cell-val', fmt2,
+  v => SPECIMEN.breeds.dot_matrix.cellSize = v, 'breed');
+bindSlider('dm-markSize', 'dm-markSize-val', fmt2,
+  v => SPECIMEN.breeds.dot_matrix.markSize = v, 'breed');
+bindSlider('dm-noiseFreq', 'dm-noiseFreq-val', fmt3,
+  v => SPECIMEN.breeds.dot_matrix.noiseFreq = v, 'breed');
+bindSlider('dm-noiseStrength', 'dm-noiseStrength-val', fmt2,
+  v => SPECIMEN.breeds.dot_matrix.noiseStrength = v, 'breed');
+bindSlider('dm-jitter', 'dm-jitter-val', fmt2,
+  v => SPECIMEN.breeds.dot_matrix.jitter = v, 'breed');
+
+document.querySelectorAll('input[name="dm-glyph"]').forEach(r => {
+  r.addEventListener('change', () => {
+    SPECIMEN.breeds.dot_matrix.glyph = r.value;
+    scheduleBreedUpdate();
+  });
+});
+
 /* ---------- Breed selector ---------- */
 
 function setBreed(breedName) {
@@ -1811,6 +1927,15 @@ document.getElementById('reset').addEventListener('click', () => {
   });
   updatePalettePreview();
 
+  Object.assign(SPECIMEN.breeds.dot_matrix, DEFAULTS.breeds.dot_matrix);
+  set('dm-cell',          'dm-cell-val',          DEFAULTS.breeds.dot_matrix.cellSize,      fmt2);
+  set('dm-markSize',      'dm-markSize-val',      DEFAULTS.breeds.dot_matrix.markSize,      fmt2);
+  set('dm-noiseFreq',     'dm-noiseFreq-val',     DEFAULTS.breeds.dot_matrix.noiseFreq,     fmt3);
+  set('dm-noiseStrength', 'dm-noiseStrength-val', DEFAULTS.breeds.dot_matrix.noiseStrength, fmt2);
+  set('dm-jitter',        'dm-jitter-val',        DEFAULTS.breeds.dot_matrix.jitter,        fmt2);
+  document.querySelectorAll('input[name="dm-glyph"]').forEach(r => {
+    r.checked = r.value === DEFAULTS.breeds.dot_matrix.glyph;
+  });
   setBreed(DEFAULTS.breed);
   scheduleFormUpdate();
 });

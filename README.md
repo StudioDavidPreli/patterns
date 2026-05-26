@@ -9,7 +9,7 @@ The tool is in its exploratory phase. Species and breeds are being built individ
 Built:
 
 - **Nineteen species:** torus, arch, cylinder, filament, bolt, bristle, synapse, blob, disc, star, block, basalt, pinwheel, anemone, agglomerate, concentric, eye. Plus two abandoned (fused_bristle, dendrite) and two skipped (ring, radial).
-- **Seven breeds:** raster_vertical, stipple, halftone, riso_noise, color_blocking, outline, color_cluster
+- **Eight breeds:** raster_vertical, stipple, halftone, riso_noise, color_blocking, outline, color_cluster, dot_matrix
 - A three-stage rendering pipeline (form -> tone -> breed) handling both 3D and 2D-native species
 - Negative polarity on all species
 - Sidebar layout on all species
@@ -19,7 +19,7 @@ Not yet built:
 
 - Pool composition layer (multiple specimens on one canvas)
 - Specimen library or saved tuples
-- Additional breeds from the planned list (dot_matrix, mycelium, blues, and others)
+- Additional breeds from the planned list (mycelium, blues, and others)
 - Output formats beyond PNG
 
 ## Species

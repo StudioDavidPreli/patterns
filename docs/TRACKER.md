@@ -2,7 +2,7 @@
 
 Snapshot of current state. Updated after meaningful changes. If this file conflicts with the code, the code wins.
 
-Last updated: 2026-05-19. **Nineteen species, seven breeds.** Three new species built: agglomerate, concentric, eye.
+Last updated: 2026-05-25. **Nineteen species, eight breeds.** Dot matrix breed on all species.
 
 Note on locations: specimen test files live under `species/`, not the repo root as some prose in README.md and CLAUDE.md still says. The discrepancy is documentation lag, not a layout decision pending. Treat `species/` as authoritative.
 
@@ -45,7 +45,7 @@ Note on locations: specimen test files live under `species/`, not the repo root 
 | color_blocking | built (all species) | silhouette, luma, normals | Region-based. Three regions plus default. All seven species have normals and support it. |
 | outline | built (all species) | silhouette; normals (face mode) | Three modes: boundary (default, all species), faces (normal discontinuity, hard-edge species only), both. Threshold param controls face-edge sensitivity. Face mode wired on disc, cylinder, arch. |
 | color_cluster | built (all species) | silhouette, luma (optional) | HSL harmony palettes, shape mix (circle/quad/triangle), Perlin noise density, chamfer distance scatter. 12 reference shapes. |
-| dot_matrix | planned | silhouette | Equal-size marks (dot or block glyph), noise-driven or grid placement. 5 reference shapes. |
+| dot_matrix | built (all species) | silhouette | Equal-size marks (dot or block glyph). Grid placement with Perlin noise density gate. 6 params (cellSize, markSize, glyph, noiseFreq, noiseStrength, jitter). 5 reference shapes. |
 | mycelium | planned | silhouette | Network/line-based connections. SHAPE-77. |
 | blues | planned | silhouette, luma, normals | Light/shadow renderer with static noise negative space in blue region. SHAPE-82. |
 | solid_fill | planned | silhouette | — |
@@ -59,7 +59,7 @@ Note on locations: specimen test files live under `species/`, not the repo root 
 
 ## Now
 
-**Nineteen species, seven breeds. Negative polarity on all species. Sidebar layout on all species.** Reference set review completed 2026-05-13. All planned species now built.
+**Nineteen species, eight breeds. Negative polarity on all species. Sidebar layout on all species.** Reference set review completed 2026-05-13. All planned species now built.
 
 Adjacent open work, ready to pick up independently:
 - ~~**Ink color parameter**~~: Done (2026-05-17). Specimen-level `inkColor: [r, g, b]` with color picker UI. All nine built species.
@@ -67,7 +67,8 @@ Adjacent open work, ready to pick up independently:
 - ~~**Agglomerate species**~~: Done (2026-05-19). Per-sphere dome normals.
 - ~~**Concentric species**~~: Done (2026-05-19). Per-ring tube normals, tilt/rotation, seeded ring offset.
 - ~~**Eye species**~~: Done (2026-05-19). Three-zone normals (sclera dome, iris dome, flat pupil), gaze controls, bulge, rotation. All planned species complete.
-- **New breeds**: dot matrix (5 ref shapes), mycelium, blues.
+- ~~**Dot matrix breed**~~: Done (2026-05-20). Built on synapse. Propagated to all species (2026-05-25).
+- **New breeds**: mycelium, blues.
 
 ## Soon
 
@@ -107,6 +108,8 @@ Adjacent open work, ready to pick up independently:
 
 ## Recent changes
 
+- 2026-05-25: DOT MATRIX propagated to disc (the only remaining species). All nineteen species now have all eight breeds. Verbatim copy of drawDotMatrixFromForm, DEFAULTS, HTML panel, slider bindings, glyph radio, and reset logic from synapse.
+- 2026-05-20: DOT MATRIX breed built on synapse (specimen_synapse_v1.html). Eighth breed. Equal-size marks on a canvas-aligned grid, gated by Perlin noise density. Two glyphs: dot (circle) and block (rect), selectable via radio. Noise gate: `p.noise(cx * noiseFreq, cy * noiseFreq)` sampled per cell; marks where noise falls below `noiseStrength` are culled, creating organic clump/void patterns. At `noiseStrength: 0` every grid cell inside the silhouette gets a mark (uniform matrix). 6 params (cellSize, markSize, glyph, noiseFreq, noiseStrength, jitter). Silhouette-only consumer; no luma or normals. Uses `inkColor`. Defaults: cellSize 5, markSize 0.70, noiseFreq 0.015, noiseStrength 0.60.
 - 2026-05-19: AGGLOMERATE species built (specimen_agglomerate_v1.html). 2D-native. SHAPE-25, 80. N circles with seeded random positions and sizes within a spread radius. Per-sphere dome normals: each silhouette pixel finds the sphere with the smallest normalized distance (dist/radius) and computes a dome normal relative to that sphere's center. Distinct from anemone's single-centroid dome (each sphere lights independently). 5 SHAPE controls (spheres, spread, sphereSize, sizeVar, rotation). Two seeds. All seven breeds. Sidebar layout. Negative polarity.
 - 2026-05-19: CONCENTRIC species built (specimen_concentric_v1.html). 2D-native. Nested rings with 2.5D projection. Rings drawn as ellipses via `ctx.ellipse()` with tilt foreshortening. Per-ring tube normals: torus cross-section model with radial sin/cos components, transformed through tilt rotation matrix to screen space. Three 3D controls: tilt (0-75, circles to ellipses), rotation (-180 to 180, tilt axis orientation), ring offset (0-90, seeded per-ring tilt axis deviation for gyroscopic/armillary forms). 7 SHAPE controls (rings, outerRadius, ringWidth, gap, tilt, rotation, ringOffset). Two seeds. All seven breeds. Sidebar layout. Negative polarity.
 - 2026-05-18: FIVE NEW SPECIES built. Star (2D-native, N-pointed polygon with optional seeded turbulence noise on boundary, dome normal model). Block (3D, BoxGeometry, two-pass rendering, six-face color_blocking). Basalt (3D, SHAPE-82, grid of merged box columns with seeded random heights, manual geometry merge via concatenated Float32Arrays). Pinwheel (2D-native, SHAPE-117, hub + N curved tapered spokes via quadratic bezier, hub inner radius for center holes, dome normal model). Anemone (2D-native, SHAPE-05/09/58, cluster of N organic Catmull-Rom cells or cubic randomly-rotated rectangles, organic/cubic % distribution, dome normal model). Ring skipped (redundant with disc innerRadius). Radial skipped (degenerate case of pinwheel). All five new species have all seven breeds, two seeds (form + breed), sidebar layout, negative polarity.
