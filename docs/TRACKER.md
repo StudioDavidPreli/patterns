@@ -2,7 +2,7 @@
 
 Snapshot of current state. Updated after meaningful changes. If this file conflicts with the code, the code wins.
 
-Last updated: 2026-05-25. **Nineteen species, eight breeds.** Dot matrix breed on all species.
+Last updated: 2026-06-12. **Nineteen species, eight breeds. Pool composition v1.** Breed pass extracted to js/breeds.js; torus and blob form passes extracted to js/species/; pool/pool_v1.html generates random multi-specimen compositions.
 
 Note on locations: specimen test files live under `species/`. README.md, docs/README.md, and CLAUDE.md all agree as of 2026-06-12.
 
@@ -69,6 +69,7 @@ Adjacent open work, ready to pick up independently:
 - ~~**Eye species**~~: Done (2026-05-19). Three-zone normals (sclera dome, iris dome, flat pupil), gaze controls, bulge, rotation. All planned species complete.
 - ~~**Dot matrix breed**~~: Done (2026-05-20). Built on synapse. Propagated to all species (2026-05-25).
 - **New breeds**: mycelium, blues.
+- **Pool composition v1**: built (2026-06-12), random builds working. Next: extract remaining seventeen species into js/species/ (incremental; each unlocks that species in the pool), and judge the open render questions (per-specimen grid phase, negative-polarity field, pool-scale paper/grain speck counts).
 
 ## Soon
 
@@ -81,7 +82,7 @@ Adjacent open work, ready to pick up independently:
 
 ## Later
 
-- **Pool composition.** Multiple specimens placed on one canvas. Requires composition format (specimen list + position + scale), layout logic, shared environment, and probably its own page that consumes saved tuples. Design discussion drafted: `docs/POOL_DISCUSSION.md` (2026-06-12).
+- **Pool composition.** v1 built 2026-06-12; see the Now section. Design: `docs/POOL_DISCUSSION.md`. Remaining: species extractions (step 6) and render judgments (step 5).
 - **Specimen library.** Saved tuples organized for reuse. Could be a JSON file in the repo or a more elaborate browser-storage system.
 - **More breeds from the planned list.** Halftone, edge_particles, mosaic each test different visual primitives.
 - **SVG output.** Deferred when we picked three.js. Adding it later requires per-breed SVG generation, which is its own project. Worth it if we want print-ready output.
@@ -108,6 +109,8 @@ Adjacent open work, ready to pick up independently:
 
 ## Recent changes
 
+- 2026-06-12: RANDOM GENERATION added to pool_v1 (pool build order step 4). GENERATE button builds a full composition from a seeded RNG: dart-throwing layout (4:3 boxes 280-480 wide, padded bounding-box rejection, 200-throw cap so saturated layouts settle for fewer specimens), uniform species and breed picks, geometry and camera sampled per specimen via the species modules' new randomGeometry(rng, place) / randomCamera(rng) (sampling bounds follow the test-page sliders; blob radius is a fraction of the placed box's short side so it always fits). Same pool seed reproduces the same composition. REROLL SEEDS retained: rerolls breed-pass seeds only, with the caveat (now stated in the page) that breeds making no random calls (halftone, outline at zero jitter) cannot visibly change under it. Boot generates from seed 7. The 2026-06-12 hardcoded composition is gone; recoverable from git if the curated grid-test layout is wanted.
+- 2026-06-12: POOL V1 BUILT (pool/pool_v1.html, pool build order steps 2-3). Hardcoded composition: four specimens (torus halftone, blob halftone, torus outline, blob stipple) on a 1280x800 canvas. Per-specimen form buffers at placed size, breed pass on the shared canvas via p5 translate, pool-injected light, pool-level paper/grain/frame, REROLL SEEDS rerolls breed seeds only (forms cached), composition JSON view. Form passes extracted to js/species/torus.js and js/species/blob.js (classic scripts registering under window.SPECIES; 3D species take {THREE, renderer} injected, render at form.W x form.H with camera aspect from the form). Shared form helpers in js/form.js (createForm, applyPolarityToForm, makeSeededRandom, shadeFromNormal). Both species pages rewired to the modules; torus 1644 -> 1383 lines, blob 2057 -> 1320. Blob's inline breed copies differed from torus only in whitespace/comments (verified by diff before adoption). Grid breeds (halftone, dot_matrix) now read form.originX/originY for pool-coordinate grid phase; zero on standalone pages reproduces the original walk exactly. Torus DEFAULTS species field corrected from legacy "ring" to "torus" (visible in specimen view JSON). Known v1 roughness: drawPaper/drawGrainOverlay speck counts are tuned for 560x420 and read sparser at pool size. Visual check confirmed by user (four specimens render correctly).
 - 2026-06-12: BREED PASS EXTRACTED to js/breeds.js (pool build order step 1). Verbatim move from specimen_torus_v10.html: applyTone, drawBreedFromForm dispatch, all eight draw*FromForm functions, their helpers (drawRasterColumnRun, hslToRgb, rgbToHsl, generatePalette, pickShape, buildDistanceField), and the paper/grain/frame helpers. One deviation: buildPaperTexture reads p.width/p.height instead of module-scoped CANVAS_W/CANVAS_H. Classic script (not ES module) defining globals, so it loads over file:// and on GitHub Pages alike; species pages keep the open-the-file workflow. Torus consumes it via script tag; inline copies deleted (2152 -> 1644 lines). Other eighteen species files unchanged, still self-contained; they migrate opportunistically. Visual parity confirmed by user.
 - 2026-06-12: POOL DISCUSSION document drafted (docs/POOL_DISCUSSION.md). Seven decision points with recommendations: code extraction into js/ modules (breeds first), render model (per-specimen form buffers, breed pass in pool coordinates), composition tuple format, random generation via per-species RANGES, dart-throwing layout, negative polarity rect-field, grid alignment judged from renders. Proposed six-step build order. Nothing built; awaiting discussion.
 - 2026-06-12: Documentation lag fixed. Root README breeds table gained the missing dot_matrix row. docs/README.md (stale duplicate: said seven species, five breeds, listed thirteen deleted files) trimmed to a docs index pointing at the root README. Stale location note in this file removed.

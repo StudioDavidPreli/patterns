@@ -123,6 +123,6 @@ When saving a specimen by hand, copy the JSON shown in the specimen view at the 
 
 ## What's not in the schema
 
-- Position on a composition canvas. The pool composition layer is not built. When it is, position and scale will be added at the composition level, not the specimen level.
+- Position on a composition canvas. The pool page (pool/pool_v1.html) adds a `place` field ({x, y, w, h, z} in pool pixels) at the composition level, alongside the specimen fields. Standalone specimen tuples don't carry it.
 - Render-time options like canvas size or output format. Those are tool-level, not specimen-level.
 - Specimen metadata (author, date, notes). Could be added later under a `meta` field. Not present now.

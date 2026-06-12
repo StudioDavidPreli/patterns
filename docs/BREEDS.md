@@ -72,7 +72,7 @@ Walks a canvas-aligned grid stepping by `cellSize`. At each cell center, samples
 - `coverage` — caps how much the lit extreme erases the dot (0.30 to 1.00, default 0.85). Same role as in raster_vertical and stipple.
 - `jitter` — optional position offset per cell (0 to 1.5, default 0). At 0 the grid reads as a clean halftone; nonzero values blur the regular pattern toward stipple.
 
-**Suited species:** any. The grid is canvas-aligned, not specimen-aligned, so when multiple specimens later share one canvas they will share grid alignment by default. This is a deliberate choice for pool composition, not an accident; if a specimen needed its own grid origin it would need a per-breed offset parameter.
+**Suited species:** any. The grid is canvas-aligned, not specimen-aligned, so multiple specimens sharing one canvas share grid alignment by default. Implemented for the pool (2026-06-12): the breed reads `form.originX`/`originY` and phases its grid in pool coordinates, so all specimens read as printed on one screen. Standalone pages leave origin at 0, which reproduces the original walk exactly. If a specimen needs its own grid phase, that would be a per-breed offset parameter; not added yet (open question, judged from pool renders). dot_matrix follows the same convention.
 
 **Notes:** Halftone is the project's first regular-pattern breed. Coverage is needed for the same reason as on raster and stipple: faceted forms (caps, arch faces) have near-uniform luma per face and would otherwise empty out under high luma. Built into cylinder v2 first; propagation to torus, arch, and filament is queued.
 

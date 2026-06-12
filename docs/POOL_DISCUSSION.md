@@ -1,6 +1,8 @@
 # Pool page: discussion document
 
-Drafted 2026-06-12. Decision points for the pool composition layer, with options and recommendations. Nothing here is built. This is the discuss-before-edits step.
+Drafted 2026-06-12. Decision points for the pool composition layer, with options and recommendations.
+
+Status (2026-06-12, same day): decisions 1-5 approved and built as proposed; build order steps 1-4 done (breeds.js, form.js, torus + blob species modules, pool_v1 with random generation and dart-throwing layout). Decisions 6 and 7 (negative-polarity field, per-specimen grid phase) remain open, to be judged from renders. Step 6 (remaining species extractions) is incremental. One deviation from the draft: shared scripts are classic scripts defining globals rather than ES modules, so file:// keeps working; the localhost note below is obsolete.
 
 ## Starting position
 

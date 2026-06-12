@@ -2,7 +2,7 @@
 
 A generative tool for producing populations of distinct specimens on a shared canvas. Each specimen is a combination of a species (the form) and a breed (the rendering style). The intended output is a composition that reads like a Proterozoic shore pool: many forms, related but not identical, sharing one environment.
 
-The tool is in its exploratory phase. Species and breeds are being built individually as standalone test files. The composition layer that places multiple specimens on one canvas does not yet exist.
+The tool is in its exploratory phase. Species and breeds were built individually as standalone test files; the composition layer that places multiple specimens on one canvas now exists in first form (pool/pool_v1.html, torus and blob so far).
 
 ## Status
 
@@ -14,10 +14,12 @@ Built:
 - Negative polarity on all species
 - Sidebar layout on all species
 - Ink color parameter on all species
+- Shared modules: `js/breeds.js` (tone + all eight breed passes), `js/form.js` (form helpers), `js/species/` (extracted form passes; torus and blob so far)
+- Pool composition v1 (`pool/pool_v1.html`): random builds of multiple specimens on one canvas, seeded generation, dart-throwing layout
 
 Not yet built:
 
-- Pool composition layer (multiple specimens on one canvas)
+- Pool support for the remaining seventeen species (extraction into `js/species/` is incremental)
 - Specimen library or saved tuples
 - Additional breeds from the planned list (mycelium, blues, and others)
 - Output formats beyond PNG
@@ -46,7 +48,7 @@ Each species produces silhouette, luma, and (optionally) normals. 3D species use
 | concentric | 2D-native | specimen_concentric_v1.html | Nested rings, 2.5D tilt projection, per-ring tube normals. |
 | eye | 2D-native | specimen_eye_v1.html | Almond silhouette, sclera/iris dome normals, negative-space pupil. |
 
-All specimen files live under `species/`.
+All specimen files live under `species/`. Shared pipeline code lives under `js/`; the composition page lives under `pool/`.
 
 ## Breeds
 
@@ -74,7 +76,7 @@ Each breed reads the form data (silhouette, luma, normals) and draws ink primiti
 
 ## Running
 
-Open any `species/specimen_*.html` in a modern browser. 3D species use three.js (loaded via importmap); all species use p5.js (loaded via CDN) for the breed pass. 2D-native species skip three.js entirely. No package.json, no bundler, no install step. Every test file is self-contained.
+Open any `species/specimen_*.html` or `pool/pool_v1.html` in a modern browser. 3D species use three.js (loaded via importmap); all species use p5.js (loaded via CDN) for the breed pass. 2D-native species skip three.js entirely. No package.json, no bundler, no install step. Torus, blob, and the pool page load shared scripts from `js/`; the other test files are still fully self-contained.
 
 ## Stack
 

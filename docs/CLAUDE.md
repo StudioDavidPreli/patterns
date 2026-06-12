@@ -78,8 +78,12 @@ When pushing back on something, state the case directly. Hedging is worse than d
 ## Where things live
 
 - Specimen test files under `species/`: `species/specimen_<species>_v<n>.html`
+- Shared pipeline code under `js/`: `breeds.js` (tone pass, breed dispatch, all eight breed functions, paper/grain/frame helpers), `form.js` (form allocation, polarity, 2D-native helpers), `species/<name>.js` (extracted form passes with DEFAULTS and random sampling; torus and blob so far)
+- The pool composition page under `pool/`
 - Documentation in `docs/`
-- No build artifacts; everything runs from raw HTML files
+- No build artifacts; everything runs from raw HTML files. Shared scripts are classic scripts defining globals, so file:// still works.
+
+Migration state: torus and blob load the shared scripts; the other seventeen test files still carry inline copies of the breed functions. A breed fix lands in `js/breeds.js` and must be mirrored in the unmigrated files (or the file migrated) until extraction completes.
 
 ## Workflow expectations
 
