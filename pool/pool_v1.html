@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POOL v1 — composition</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
+<script src="../js/breeds.js"></script>
+<script src="../js/form.js"></script>
+<script src="../js/species/torus.js"></script>
+<script src="../js/species/blob.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper:      #e8e4dc;
+    --paper-deep: #d8d3c8;
+    --ink:        #131210;
+    --ink-soft:   #4a4640;
+    --ink-faint:  #8a857c;
+    --rule:       #131210;
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .workspace { display: flex; height: 100vh; }
+  .sidebar { width: 300px; min-width: 300px; overflow-y: auto; padding: 30px 22px; display: flex; flex-direction: column; gap: 16px; border-right: 1px solid rgba(19,18,16,0.18); }
+  .canvas-area { flex: 1; overflow: auto; padding: 20px; }
+
+  header .kicker {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin: 0 0 8px 0;
+  }
+  header p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 11px;
+  }
+
+  #sketch {
+    border: 1px solid rgba(19,18,16,0.18);
+    background: var(--paper);
+    display: inline-block;
+    line-height: 0;
+    font-size: 0;
+  }
+  #sketch canvas { display: block; }
+
+  .controls-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--paper-deep); }
+  button:active { transform: translateY(1px); }
+
+  .panel {
+    width: 100%;
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.18);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel h4 {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    color: var(--ink-faint);
+    margin: 0;
+    font-weight: 500;
+  }
+  .specimen-row {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  details {
+    background: var(--paper-deep);
+    border: 1px solid rgba(19,18,16,0.18);
+    padding: 12px;
+  }
+  details summary {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    color: var(--ink-faint);
+    cursor: pointer;
+  }
+  details pre {
+    font-size: 9px;
+    line-height: 1.4;
+    max-height: 300px;
+    overflow: auto;
+    margin: 10px 0 0 0;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="workspace">
+  <div class="sidebar">
+    <header>
+      <div class="kicker">PROTEROZOIC POOL</div>
+      <h1>POOL v1</h1>
+      <p>Multiple specimens on one canvas. GENERATE builds a new composition: layout, species, breeds, geometry, camera, seeds. REROLL SEEDS keeps the forms and rerolls only the breed pass; breeds that make no random calls (halftone and outline at zero jitter) will not visibly change.</p>
+    </header>
+
+    <div class="controls-row">
+      <button id="generate">GENERATE</button>
+      <button id="reroll">REROLL SEEDS</button>
+      <button id="savePng">SAVE PNG</button>
+    </div>
+
+    <div class="panel">
+      <h4>SPECIMENS</h4>
+      <div id="specimen-list"></div>
+    </div>
+
+    <details>
+      <summary>COMPOSITION JSON</summary>
+      <pre id="comp-json"></pre>
+    </details>
+  </div>
+
+  <div class="canvas-area">
+    <div id="sketch"></div>
+  </div>
+</div>
+
+<script type="module">
+/* =====================================================================
+   POOL v1 · random builds
+   ---------------------------------------------------------------------
+   Render model from docs/POOL_DISCUSSION.md decision 2: per-specimen
+   form buffers at placed size, breed pass on the shared canvas via
+   translate, grid phase from form.originX/originY, pool-injected
+   light, pool-level paper and grain.
+
+   Generation (decision 4): seeded from POOL.seed. Dart-throwing
+   layout, uniform species and breed picks, geometry and camera
+   sampled by each species module's randomGeometry/randomCamera.
+   The same pool seed reproduces the same composition.
+
+   Known v1 roughness, to judge from renders: drawPaper and
+   drawGrainOverlay use fixed speck counts tuned for 560x420, so they
+   read sparser at pool size.
+   ===================================================================== */
+
+import * as THREE from 'three';
+
+const BREEDS = ["raster_vertical", "stipple", "halftone", "riso_noise",
+                "color_blocking", "outline", "color_cluster", "dot_matrix"];
+
+function makeEntry(species, breed, seed, place) {
+  const s = JSON.parse(JSON.stringify(SPECIES[species].DEFAULTS));
+  s.species = species;
+  s.breed = breed;
+  s.seed = seed;
+  s.place = place;
+  return s;
+}
+
+const POOL = {
+  canvas: { w: 1280, h: 800 },
+  light: { keyIntensity: 1.20, direction: [0.30, 1.00, 0.45], ambient: 0.10 },
+  paperGrain: 0.55,
+  seed: 7,
+  specimens: []
+};
+
+function generateComposition(poolSeed) {
+  POOL.seed = poolSeed;
+  const rng = makeSeededRandom(poolSeed);
+  const names = Object.keys(SPECIES);
+
+  // Dart-throwing layout: sample a 4:3 box, reject padded bounding-box
+  // overlap, give up after enough failed throws.
+  const places = [];
+  const target = 4 + Math.floor(rng() * 3);
+  const pad = 16;
+  let attempts = 0;
+  while (places.length < target && attempts < 200) {
+    attempts++;
+    const w = Math.round(280 + rng() * 200);
+    const h = Math.round(w * 0.75);
+    const x = Math.round(20 + rng() * (POOL.canvas.w - w - 40));
+    const y = Math.round(20 + rng() * (POOL.canvas.h - h - 40));
+    const hit = places.some(q =>
+      x < q.x + q.w + pad && q.x < x + w + pad &&
+      y < q.y + q.h + pad && q.y < y + h + pad);
+    if (hit) continue;
+    places.push({ x, y, w, h, z: places.length });
+  }
+
+  POOL.specimens = places.map(place => {
+    const species = names[Math.floor(rng() * names.length)];
+    const breed = BREEDS[Math.floor(rng() * BREEDS.length)];
+    const s = makeEntry(species, breed, Math.floor(rng() * 100000), place);
+    const mod = SPECIES[species];
+    if (mod.randomGeometry) s.geometry = mod.randomGeometry(rng, place);
+    if (mod.randomCamera) s.camera = mod.randomCamera(rng);
+    return s;
+  });
+}
+
+/* ---------- Form passes ---------- */
+/* One renderer shared by all 3D instances; one instance per species.
+   Forms are built once and cached; reroll touches only breed seeds. */
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(1);
+renderer.setClearColor(0x000000, 0);
+
+const instances = {
+  torus: SPECIES.torus.create({ THREE, renderer }),
+  blob:  SPECIES.blob.create()
+};
+
+const forms = new Map();
+
+function buildForms() {
+  forms.clear();
+  for (const s of POOL.specimens) {
+    s.light = JSON.parse(JSON.stringify(POOL.light));
+    const form = createForm(s.place.w, s.place.h);
+    form.originX = s.place.x;
+    form.originY = s.place.y;
+    instances[s.species].renderForm(s, form);
+    applyPolarityToForm(form, s);
+    forms.set(s, form);
+  }
+}
+
+/* ---------- Pool render ---------- */
+
+let myP5;
+
+const sketch = (p) => {
+  let pPaper = null;
+
+  p.setup = function() {
+    const c = p.createCanvas(POOL.canvas.w, POOL.canvas.h);
+    c.parent('sketch');
+    p.noLoop();
+    pPaper = buildPaperTexture(p);
+    renderPool(p, pPaper);
+  };
+
+  p.rerender = function() {
+    renderPool(p, pPaper);
+  };
+
+  p.savePng = function() {
+    p.saveCanvas('pool-v1', 'png');
+  };
+};
+
+function renderPool(p, paper) {
+  p.randomSeed(POOL.seed);
+  p.noiseSeed(POOL.seed);
+  drawPaper(p, paper);
+
+  const ordered = [...POOL.specimens].sort((a, b) => a.place.z - b.place.z);
+  for (const s of ordered) {
+    const form = forms.get(s);
+    p.randomSeed(s.seed);
+    p.noiseSeed(s.seed);
+    p.push();
+    p.translate(s.place.x, s.place.y);
+    drawBreedFromForm(p, s, form);
+    p.pop();
+  }
+
+  p.randomSeed(POOL.seed);
+  drawGrainOverlay(p);
+  drawFrameEdge(p);
+}
+
+/* ---------- Sidebar ---------- */
+
+function updateSidebar() {
+  const list = document.getElementById('specimen-list');
+  list.innerHTML = '';
+  const seedRow = document.createElement('div');
+  seedRow.className = 'specimen-row';
+  seedRow.textContent = `pool seed ${POOL.seed} · ${POOL.specimens.length} specimens`;
+  list.appendChild(seedRow);
+  for (const s of POOL.specimens) {
+    const row = document.createElement('div');
+    row.className = 'specimen-row';
+    row.textContent = `${s.species} · ${s.breed} · seed ${s.seed} · ${s.place.w}x${s.place.h} @ ${s.place.x},${s.place.y}`;
+    list.appendChild(row);
+  }
+  document.getElementById('comp-json').textContent = JSON.stringify(POOL, null, 2);
+}
+
+document.getElementById('generate').addEventListener('click', () => {
+  generateComposition(Math.floor(Math.random() * 100000));
+  buildForms();
+  updateSidebar();
+  myP5.rerender();
+});
+
+document.getElementById('reroll').addEventListener('click', () => {
+  for (const s of POOL.specimens) {
+    s.seed = Math.floor(Math.random() * 100000);
+  }
+  updateSidebar();
+  myP5.rerender();
+});
+
+document.getElementById('savePng').addEventListener('click', () => {
+  myP5.savePng();
+});
+
+/* ---------- Boot ---------- */
+
+generateComposition(POOL.seed);
+buildForms();
+updateSidebar();
+myP5 = new p5(sketch);
+</script>
+
+</body>
+</html>
