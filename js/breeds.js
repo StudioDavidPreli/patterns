@@ -131,8 +131,10 @@ function drawStippleFromForm(p, s, sp, form) {
 /* Walks a canvas-aligned grid; one circle per cell whose diameter
    scales with (1 - luma·coverage). Coverage caps how much the lit
    extreme erases the dot. Grid is canvas-aligned, not specimen-
-   aligned, so multiple specimens later sharing one canvas will share
-   grid alignment by default. */
+   aligned: on a shared pool canvas the grid phase comes from
+   form.originX/originY, so all specimens read as printed on one
+   halftone screen. Standalone pages leave origin at 0, which
+   reproduces the original walk exactly. */
 
 function drawHalftoneFromForm(p, s, sp, form) {
   const { silhouette, luma, W: fW, H: fH } = form;
@@ -144,9 +146,13 @@ function drawHalftoneFromForm(p, s, sp, form) {
   const halfCell = cell * 0.5;
   const dotMax = cell * sp.dotSize;
   const useJitter = sp.jitter > 0;
+  const ox = form.originX || 0;
+  const oy = form.originY || 0;
+  const startX = ((halfCell - ox) % cell + cell) % cell;
+  const startY = ((halfCell - oy) % cell + cell) % cell;
 
-  for (let cy = halfCell; cy < fH; cy += cell) {
-    for (let cx = halfCell; cx < fW; cx += cell) {
+  for (let cy = startY; cy < fH; cy += cell) {
+    for (let cx = startX; cx < fW; cx += cell) {
       const fx = Math.floor(cx);
       const fy = Math.floor(cy);
       const idx = fy * fW + fx;
@@ -460,16 +466,23 @@ function drawDotMatrixFromForm(p, s, sp, form) {
   const useNoise = sp.noiseStrength > 0;
   const useJitter = sp.jitter > 0;
   const isDot = sp.glyph === "dot";
+  // Canvas-aligned grid, same convention as halftone: phase from the
+  // form's pool origin, zero on standalone pages. Noise samples pool
+  // coordinates so the gate pattern is continuous across the pool.
+  const ox = form.originX || 0;
+  const oy = form.originY || 0;
+  const startX = ((halfCell - ox) % cell + cell) % cell;
+  const startY = ((halfCell - oy) % cell + cell) % cell;
 
-  for (let cy = halfCell; cy < fH; cy += cell) {
-    for (let cx = halfCell; cx < fW; cx += cell) {
+  for (let cy = startY; cy < fH; cy += cell) {
+    for (let cx = startX; cx < fW; cx += cell) {
       const fx = Math.floor(cx);
       const fy = Math.floor(cy);
       if (fx < 0 || fx >= fW || fy < 0 || fy >= fH) continue;
       if (silhouette[fy * fW + fx] !== 1) continue;
 
       if (useNoise) {
-        const n = p.noise(cx * sp.noiseFreq, cy * sp.noiseFreq);
+        const n = p.noise((cx + ox) * sp.noiseFreq, (cy + oy) * sp.noiseFreq);
         if (n < sp.noiseStrength) continue;
       }
 

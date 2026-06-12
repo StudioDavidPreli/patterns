@@ -15,6 +15,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
 <script src="../js/breeds.js"></script>
+<script src="../js/form.js"></script>
+<script src="../js/species/torus.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -853,130 +855,7 @@
 
 import * as THREE from 'three';
 
-const DEG2RAD = Math.PI / 180;
-
-const DEFAULTS = {
-  species: "ring",
-  breed:   "halftone",
-
-  geometry: {
-    type:     "torus",
-    R:        1.00,
-    r:        0.30,
-    rotation: [90, 0, 0],
-    segR:     32,
-    segT:     128
-  },
-
-  camera: {
-    fov:      30,
-    position: [0.00, 1.05, 3.30],
-    target:   [0, 0, 0]
-  },
-
-  light: {
-    keyIntensity: 1.20,
-    direction:    [0.30, 1.00, 0.45],
-    ambient:      0.10
-  },
-
-  tone: {
-    blackPoint: 0.0,
-    whitePoint: 1.0,
-    gamma:      1.0
-  },
-
-  polarity: "positive",
-  fillLuma: 0.00,
-
-  breeds: {
-    raster_vertical: {
-      spacing:    1.6,
-      segmentLen: 6,
-      jitterX:    0.4,
-      weightBase: 1.0,
-      weightVar:  0.35,
-      lumaWeight: 0.40
-    },
-    stipple: {
-      density:     0.14,
-      dotSizeBase: 1.6,
-      dotSizeVar:  0.40,
-      jitter:      0.5
-    },
-    halftone: {
-      cellSize:  6.00,
-      dotSize:   0.85,
-      coverage:  0.85,
-      jitter:    0.00
-    },
-    riso_noise: {
-      density:     0.12,
-      dotSizeBase: 1.4,
-      dotSizeVar:  0.40,
-      jitter:      0.5,
-      misreg:      1.5,
-      // Layer order is paint order; later layers sit on top.
-      // lumaResponse > 0  → layer prefers shadow
-      // lumaResponse < 0  → layer prefers light
-      // lumaResponse = 0  → uniform across the form
-      layers: [
-        { color: [20, 18, 14, 240],   offset: [0.0, 0.0],   densityMult: 1.00, lumaResponse:  0.60 }, // black
-        { color: [232, 89, 79, 220],  offset: [1.5, -0.8],  densityMult: 0.55, lumaResponse:  0.00 }, // riso red
-        { color: [248, 215, 88, 220], offset: [-1.2, 1.5],  densityMult: 0.40, lumaResponse: -0.30 }, // riso yellow
-        { color: [64, 110, 178, 220], offset: [2.0, 1.2],   densityMult: 0.35, lumaResponse:  0.50 }  // riso blue
-      ]
-    },
-    color_blocking: {
-      density:     0.25,
-      dotSizeBase: 1.4,
-      dotSizeVar:  0.30,
-      jitter:      0.5,
-      shading:     0.30,
-      defaultColor: [40, 36, 30, 200],
-      regions: [
-        { dirX: 0, dirY:  1, dirZ: 0, threshold: 0.40, color: [64, 110, 178, 220] },
-        { dirX: 0, dirY: -1, dirZ: 0, threshold: 0.40, color: [58, 140, 80, 220] },
-        { dirX: 0, dirY:  0, dirZ: 1, threshold: 0.65, color: [248, 215, 88, 220] }
-      ]
-    },
-    outline: {
-      weight: 1.5,
-      jitter: 0.00
-    },
-    color_cluster: {
-      count: 300,
-      size: 8,
-      sizeVar: 0.50,
-      circlePct: 100,
-      quadPct: 0,
-      trianglePct: 0,
-      rotation: 0,
-      opacity: 1.0,
-      baseColor: [0, 60, 50],
-      harmony: "triadic",
-      darkMix: 0.0,
-      lumaResponse: 0.0,
-      noiseFreq: 0.02,
-      noiseStrength: 0.0,
-      scatter: 0
-    },
-    dot_matrix: {
-      cellSize:       5,
-      markSize:       0.70,
-      glyph:          "dot",
-      noiseFreq:      0.015,
-      noiseStrength:  0.60,
-      jitter:         0.00
-    }
-  },
-
-  paperGrain: 0.55,
-  inkColor:   [14, 13, 11],
-  inkAlpha:   232,
-
-  seed: 1138
-};
+const DEFAULTS = SPECIES.torus.DEFAULTS;
 
 const SPECIMEN = JSON.parse(JSON.stringify(DEFAULTS));
 
@@ -985,168 +864,28 @@ const CANVAS_H = 420;
 
 /* ---------- Form pass ---------- */
 
+/* The torus form pass lives in ../js/species/torus.js. The page owns
+   the renderer; the species instance owns scene, mesh, materials, and
+   readback canvases. */
+
 const _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 _renderer.setPixelRatio(1);
 _renderer.setSize(CANVAS_W, CANVAS_H);
 _renderer.setClearColor(0x000000, 0);
 
-const _scene = new THREE.Scene();
-const _camera = new THREE.PerspectiveCamera(SPECIMEN.camera.fov, CANVAS_W / CANVAS_H, 0.1, 100);
+const _torusInstance = SPECIES.torus.create({ THREE, renderer: _renderer });
 
-const _litMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0, roughness: 0.9 });
-
-const _normalMaterial = new THREE.ShaderMaterial({
-  vertexShader: `
-    varying vec3 vObjectNormal;
-    void main() {
-      vObjectNormal = normal;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    varying vec3 vObjectNormal;
-    void main() {
-      gl_FragColor = vec4(normalize(vObjectNormal) * 0.5 + 0.5, 1.0);
-    }
-  `
-});
-
-const _torus = new THREE.Mesh(
-  new THREE.TorusGeometry(SPECIMEN.geometry.R, SPECIMEN.geometry.r, SPECIMEN.geometry.segR, SPECIMEN.geometry.segT),
-  _litMaterial
-);
-_scene.add(_torus);
-
-const _keyLight = new THREE.DirectionalLight(0xffffff, SPECIMEN.light.keyIntensity);
-_scene.add(_keyLight);
-
-const _ambient = new THREE.AmbientLight(0xffffff, SPECIMEN.light.ambient);
-_scene.add(_ambient);
-
-const _readCanvas = document.createElement('canvas');
-_readCanvas.width = CANVAS_W;
-_readCanvas.height = CANVAS_H;
-const _readCtx = _readCanvas.getContext('2d');
-
-const _normalReadCanvas = document.createElement('canvas');
-_normalReadCanvas.width = CANVAS_W;
-_normalReadCanvas.height = CANVAS_H;
-const _normalReadCtx = _normalReadCanvas.getContext('2d');
-
-const _silhouette = new Uint8Array(CANVAS_W * CANVAS_H);
-const _luma = new Float32Array(CANVAS_W * CANVAS_H);
-const _normals = new Float32Array(CANVAS_W * CANVAS_H * 3);
-
-let _lastR = -1;
-let _lastr = -1;
-
-const formData = {
-  silhouette: _silhouette, luma: _luma, normals: _normals,
-  W: CANVAS_W, H: CANVAS_H,
-  lumaMin: 0, lumaMax: 1, lumaMean: 0.5
-};
+const formData = createForm(CANVAS_W, CANVAS_H);
+const _readCanvas = _torusInstance.litCanvas;
 
 function renderFormPass() {
-  _camera.position.set(...SPECIMEN.camera.position);
-  _camera.fov = SPECIMEN.camera.fov;
-  _camera.lookAt(...SPECIMEN.camera.target);
-  _camera.updateProjectionMatrix();
-
-  _keyLight.position.set(...SPECIMEN.light.direction);
-  _keyLight.intensity = SPECIMEN.light.keyIntensity;
-  _ambient.intensity = SPECIMEN.light.ambient;
-
-  _torus.rotation.set(
-    SPECIMEN.geometry.rotation[0] * DEG2RAD,
-    SPECIMEN.geometry.rotation[1] * DEG2RAD,
-    SPECIMEN.geometry.rotation[2] * DEG2RAD
-  );
-
-  if (SPECIMEN.geometry.R !== _lastR || SPECIMEN.geometry.r !== _lastr) {
-    _torus.geometry.dispose();
-    _torus.geometry = new THREE.TorusGeometry(
-      SPECIMEN.geometry.R, SPECIMEN.geometry.r, SPECIMEN.geometry.segR, SPECIMEN.geometry.segT
-    );
-    _lastR = SPECIMEN.geometry.R;
-    _lastr = SPECIMEN.geometry.r;
-  }
-
-  _renderer.render(_scene, _camera);
-
-  _readCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-  _readCtx.drawImage(_renderer.domElement, 0, 0);
-  const img = _readCtx.getImageData(0, 0, CANVAS_W, CANVAS_H);
-
-  const total = CANVAS_W * CANVAS_H;
-  let minL = 1, maxL = 0, sumL = 0, count = 0;
-  for (let i = 0; i < total; i++) {
-    const r = img.data[i * 4];
-    const g = img.data[i * 4 + 1];
-    const b = img.data[i * 4 + 2];
-    const a = img.data[i * 4 + 3];
-    if (a > 24) {
-      _silhouette[i] = 1;
-      const l = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      _luma[i] = l;
-      if (l < minL) minL = l;
-      if (l > maxL) maxL = l;
-      sumL += l;
-      count++;
-    } else {
-      _silhouette[i] = 0;
-      _luma[i] = 0;
-    }
-  }
-  formData.lumaMin  = count ? minL : 0;
-  formData.lumaMax  = count ? maxL : 0;
-  formData.lumaMean = count ? sumL / count : 0;
-
-  // ---- Pass 2: normals ----
-  _torus.material = _normalMaterial;
-  _renderer.render(_scene, _camera);
-  _normalReadCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-  _normalReadCtx.drawImage(_renderer.domElement, 0, 0);
-  const normalImg = _normalReadCtx.getImageData(0, 0, CANVAS_W, CANVAS_H);
-
-  for (let i = 0; i < total; i++) {
-    if (_silhouette[i] === 0) {
-      _normals[i * 3]     = 0;
-      _normals[i * 3 + 1] = 0;
-      _normals[i * 3 + 2] = 0;
-      continue;
-    }
-    _normals[i * 3]     = (normalImg.data[i * 4]     / 255) * 2 - 1;
-    _normals[i * 3 + 1] = (normalImg.data[i * 4 + 1] / 255) * 2 - 1;
-    _normals[i * 3 + 2] = (normalImg.data[i * 4 + 2] / 255) * 2 - 1;
-  }
-
-  _torus.material = _litMaterial;
+  _torusInstance.renderForm(SPECIMEN, formData);
 }
 
 /* ---------- Polarity pass ---------- */
 
 function applyPolarity() {
-  if (SPECIMEN.polarity !== "negative") return;
-  const total = CANVAS_W * CANVAS_H;
-  const fill = SPECIMEN.fillLuma;
-  let minL = fill, maxL = fill, sumL = 0, count = 0;
-  for (let i = 0; i < total; i++) {
-    if (_silhouette[i] === 1) {
-      _silhouette[i] = 0;
-      _luma[i] = 0;
-      _normals[i * 3] = 0;
-      _normals[i * 3 + 1] = 0;
-      _normals[i * 3 + 2] = 0;
-    } else {
-      _silhouette[i] = 1;
-      _luma[i] = fill;
-      sumL += fill;
-      count++;
-    }
-  }
-  formData.lumaMin  = count ? minL : 0;
-  formData.lumaMax  = count ? maxL : 0;
-  formData.lumaMean = count ? sumL / count : 0;
+  applyPolarityToForm(formData, SPECIMEN);
 }
 
 /* ---------- Tone and breed passes ---------- */
