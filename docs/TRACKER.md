@@ -4,7 +4,7 @@ Snapshot of current state. Updated after meaningful changes. If this file confli
 
 Last updated: 2026-05-25. **Nineteen species, eight breeds.** Dot matrix breed on all species.
 
-Note on locations: specimen test files live under `species/`, not the repo root as some prose in README.md and CLAUDE.md still says. The discrepancy is documentation lag, not a layout decision pending. Treat `species/` as authoritative.
+Note on locations: specimen test files live under `species/`. README.md, docs/README.md, and CLAUDE.md all agree as of 2026-06-12.
 
 ## Species
 
@@ -81,7 +81,7 @@ Adjacent open work, ready to pick up independently:
 
 ## Later
 
-- **Pool composition.** Multiple specimens placed on one canvas. Requires composition format (specimen list + position + scale), layout logic, shared environment, and probably its own page that consumes saved tuples.
+- **Pool composition.** Multiple specimens placed on one canvas. Requires composition format (specimen list + position + scale), layout logic, shared environment, and probably its own page that consumes saved tuples. Design discussion drafted: `docs/POOL_DISCUSSION.md` (2026-06-12).
 - **Specimen library.** Saved tuples organized for reuse. Could be a JSON file in the repo or a more elaborate browser-storage system.
 - **More breeds from the planned list.** Halftone, edge_particles, mosaic each test different visual primitives.
 - **SVG output.** Deferred when we picked three.js. Adding it later requires per-breed SVG generation, which is its own project. Worth it if we want print-ready output.
@@ -108,6 +108,8 @@ Adjacent open work, ready to pick up independently:
 
 ## Recent changes
 
+- 2026-06-12: POOL DISCUSSION document drafted (docs/POOL_DISCUSSION.md). Seven decision points with recommendations: code extraction into js/ modules (breeds first), render model (per-specimen form buffers, breed pass in pool coordinates), composition tuple format, random generation via per-species RANGES, dart-throwing layout, negative polarity rect-field, grid alignment judged from renders. Proposed six-step build order. Nothing built; awaiting discussion.
+- 2026-06-12: Documentation lag fixed. Root README breeds table gained the missing dot_matrix row. docs/README.md (stale duplicate: said seven species, five breeds, listed thirteen deleted files) trimmed to a docs index pointing at the root README. Stale location note in this file removed.
 - 2026-05-25: DOT MATRIX propagated to disc (the only remaining species). All nineteen species now have all eight breeds. Verbatim copy of drawDotMatrixFromForm, DEFAULTS, HTML panel, slider bindings, glyph radio, and reset logic from synapse.
 - 2026-05-20: DOT MATRIX breed built on synapse (specimen_synapse_v1.html). Eighth breed. Equal-size marks on a canvas-aligned grid, gated by Perlin noise density. Two glyphs: dot (circle) and block (rect), selectable via radio. Noise gate: `p.noise(cx * noiseFreq, cy * noiseFreq)` sampled per cell; marks where noise falls below `noiseStrength` are culled, creating organic clump/void patterns. At `noiseStrength: 0` every grid cell inside the silhouette gets a mark (uniform matrix). 6 params (cellSize, markSize, glyph, noiseFreq, noiseStrength, jitter). Silhouette-only consumer; no luma or normals. Uses `inkColor`. Defaults: cellSize 5, markSize 0.70, noiseFreq 0.015, noiseStrength 0.60.
 - 2026-05-19: AGGLOMERATE species built (specimen_agglomerate_v1.html). 2D-native. SHAPE-25, 80. N circles with seeded random positions and sizes within a spread radius. Per-sphere dome normals: each silhouette pixel finds the sphere with the smallest normalized distance (dist/radius) and computes a dome normal relative to that sphere's center. Distinct from anemone's single-centroid dome (each sphere lights independently). 5 SHAPE controls (spheres, spread, sphereSize, sizeVar, rotation). Two seeds. All seven breeds. Sidebar layout. Negative polarity.

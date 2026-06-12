@@ -61,6 +61,7 @@ Each breed reads the form data (silhouette, luma, normals) and draws ink primiti
 | color_blocking | silhouette, luma, normals | Normal-based color regions. |
 | outline | silhouette, normals | Boundary and/or face-edge contours. |
 | color_cluster | silhouette, luma | HSL harmony palettes, shape mix, Perlin density. |
+| dot_matrix | silhouette | Equal-size marks (dot or block glyph) on a grid, Perlin noise density gate. |
 
 ## Documentation
 
